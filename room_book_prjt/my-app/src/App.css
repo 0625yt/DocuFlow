@@ -1,0 +1,23 @@
+
+.submit-button {
+  margin-top: 0.5rem;
+  margin-left: 1rem;
+}
+table {
+  margin-top: 2rem;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+table th, table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
+
+table th {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  text-align: left;
+  background-color: rgb(245, 245, 227);
+  color: black;
+}
