@@ -1,112 +1,109 @@
 import React, { useState } from 'react';
-import './App.css';
+import './App.css'; 
 
-// Main Component
-const ReservationForm = () => {
-  const [reservationDetails, setReservationDetails] = useState({}); // State for reservation details
+const App = () => {
+  const [credentials, setCredentials] = useState({ LOGIN_ID: '', LOGIN_PW: '' });
 
-  const handleChange = (e) => {
-    setReservationDetails({
-      ...reservationDetails,
-      [e.target.name]: e.target.value // Using computed property names to handle multiple input fields
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCredentials({
+      ...credentials,
+      [name]: value,
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Check if the number of people and customers is less than or equal to the maximum allowed
-    const room = reservationDatas.find(room => room.RoomNo === reservationDetails.RoomNo);
-    if (room && parseInt(room.Persons) >= parseInt(reservationDetails.numberOfPeople)) {
-      // Format the output
-      const formattedOutput = reservationDetails.RoomNo + " " + room.RoomName + " " + reservationDetails.numberOfPeople + " " + room.Prices;
-      
-      // Display the formatted output
-      alert(formattedOutput);
-
-      // Reset the form fields after submission
-      setReservationDetails({});
+  const handleLogin = async () => {
+    if (credentials.LOGIN_ID && credentials.LOGIN_PW) {
+      try {
+        const response = await fetch('http://localhost:8080/api/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            loginId: credentials.LOGIN_ID,
+            loginPw: credentials.LOGIN_PW,
+          }),
+        });
+          
+        const data = await response.json();
+        if (data.status === 'success') {
+          alert(data.message);
+        } else {
+          alert(data.message);
+        }
+      } catch (error) {
+        console.error('로그인 요청 중 오류 발생:', error);
+        alert('서버와 통신 중 문제가 발생했습니다.');
+      }
     } else {
-      alert("The number of people exceeds the maximum allowed for this room.");
+      alert('아이디와 패스워드 모두 입력하십시오.');
     }
   };
 
-  // 예약 정보 데이터
-  const reservationDatas = [
-    { RoomName: "Lemon", RoomNo: "101", Persons: "2", Hours: "10:00" ,Prices:"55000"},
-    { RoomName: "Ocean", RoomNo: "102", Persons: "3", Hours: "14:30" ,Prices:"30000"},
-    { RoomName: "Cloud", RoomNo: "103", Persons: "2", Hours:"16.00",  Prices:"65000"},
-    { RoomName:"React" ,RoomNo:"104" ,Hours:"16.00",Persons:"4",Prices:"98000"}
-  ];
-
-  // 방 조회 함수
-  const handleRoomSearch = () => {
-    const popup = window.open('', 'Room Search', 'width=400,height=400');
-    if (popup) {
-      // 팝업 창 내용 작성
-      popup.document.write(`
-        <html>
-          <head>
-            <title>Room Search</title>
-          </head>
-          <body>
-            <h2>Room Search</h2>
-            <p>팝업 창 내용</p>
-          </body>
-        </html>
-      `);
-      popup.document.close();
-    } else {
-      alert("Please enable pop-ups for this site to proceed with the room search.");
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      handleLogin();
     }
   };
 
   return (
-    <>
-      <h2>Meeting Rooms Reservation</h2>
-      <h2>예약 가능한 미팅룸 리스트</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Room No</th>
-            <th>Room Name</th>
-            <th>Persons</th>
-            <th>Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reservationDatas.map((reservationData, index) => (
-            <tr key={index}>
-              <td>{reservationData.RoomNo}</td>
-              <td>{reservationData.RoomName}</td>
-              <td>{reservationData.Persons}</td>
-              <td>{reservationData.Prices}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <button type="button" onClick={handleRoomSearch}>방 조회</button>
+    <div className="login-page">
+      <div className="container">
+        <div className="panel-heading">
+          <div className="main-center">
+            <div className="logo">
+              <img src="../../images/loginLogo.png" alt="Logo" />
+            </div>
 
-      {/* 예약 양식 */}
-      <form onSubmit={handleSubmit}>
-        <label>룸 번호 : 
-          <input type="text" name="RoomNo" className="submit-button" value={reservationDetails.RoomNo || ''} onChange={handleChange} />
-        </label><br/>
-        <label>고객명 :
-          <input type="text" name="name" className="submit-button" value={reservationDetails.name || ''} onChange={handleChange} />
-        </label><br/>
-        <label>인원수 : 
-          <input type="number" name="numberOfPeople" className="submit-button" value={reservationDetails.numberOfPeople || ''} onChange={handleChange} min="0" />
-        </label><br/>
-        <label>예약 시간 : 
-          <input type="time" name="useTime" className="submit-button" value={reservationDetails.useTime || ''} onChange={handleChange} style={{width: '6.3rem'}}/>
-        </label><br/>
-        <button type="submit">Submit</button>
-      </form>
+            <div className="row seperate-row">
+              <span className="input-group-addon">
+                <i className="fa fa-user" aria-hidden="true"></i>
+              </span>
+              <input
+                type="email"
+                className="form-control"
+                name="LOGIN_ID"
+                value={credentials.LOGIN_ID}
+                placeholder="Enter your ID"
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
 
-      {/* 매칭된 예약 표시 */}
-    </>
+            <div className="row seperate-row">
+              <span className="input-group-addon">
+                <i className="fa fa-lock" aria-hidden="true"></i>
+              </span>
+              <input
+                type="password"
+                className="form-control"
+                name="LOGIN_PW"
+                value={credentials.LOGIN_PW}
+                placeholder="Enter your password"
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+
+            <div className="row seperate-row">
+              <button
+                type="button"
+                className="btn btn-primary btn-lg btn-block btn-try-login"
+                onClick={handleLogin}
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer id="container-footer">
+        Copyright ⓒ 보험금 지급 솔루션 포트폴리오 All Rights Reserved
+      </footer>
+    </div>
   );
 };
 
-export default ReservationForm;
+export default App;
