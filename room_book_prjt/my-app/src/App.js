@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './App.css'; 
+<img src="../public/login_image/loginLogo.png" alt="Logo" />
 
 const App = () => {
   const [credentials, setCredentials] = useState({ LOGIN_ID: '', LOGIN_PW: '' });
@@ -53,7 +54,7 @@ const App = () => {
         <div className="panel-heading">
           <div className="main-center">
             <div className="logo">
-              <img src="../../images/loginLogo.png" alt="Logo" />
+            <img src="/login_image/loginLogo.png" alt="Logo" />
             </div>
 
             <div className="row seperate-row">
