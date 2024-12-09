@@ -59,6 +59,18 @@ body, html {
   transition: background-color 0.3s ease;
 }
 
+.btn-try-join {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  background-color: #688bb8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
 .btn-try-login:hover {
   background-color: #0056b3;
 }

@@ -1,11 +1,14 @@
 // components/auth/LoginForm.jsx
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // React Router의 useNavigate 사용
 import LoginLogo from './LoginLogo';
 import LoginInput from './LoginInput';
 import LoginButton from './LoginButton';
+import JoinButton from './JoinButton';
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({ LOGIN_ID: '', LOGIN_PW: '' });
+  const navigate = useNavigate(); // navigate 함수 생성
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -46,6 +49,12 @@ const LoginForm = () => {
     }
   };
 
+  // 회원가입 페이지로 이동하는 함수
+  const handleJoin = () => {
+    navigate('/join'); // 회원가입 페이지로 이동
+  };
+
+
   return (
     <div className="login-form">
       <LoginLogo />
@@ -68,7 +77,8 @@ const LoginForm = () => {
         icon="lock"
       />
       <LoginButton onClick={handleLogin} />
-    </div>
+     <JoinButton onClick={handleJoin} /> {/* handleJoin을 핸들러로 전달 */}
+      </div>
   );
 };
 
