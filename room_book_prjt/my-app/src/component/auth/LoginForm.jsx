@@ -77,8 +77,8 @@ const LoginForm = () => {
         icon="lock"
       />
       <LoginButton onClick={handleLogin} />
-     <JoinButton onClick={handleJoin} /> {/* handleJoin을 핸들러로 전달 */}
-      </div>
+      <JoinButton onClick={handleJoin} /> {/* handleJoin을 핸들러로 전달 */}
+    </div>
   );
 };
 

@@ -1,79 +1,122 @@
 /* General Styles */
-body, html {
-  background-color: #FFFFFF;
+body,
+html {
+  background-color: #f9f9f9;
   margin: 0;
   padding: 0;
   font-family: 'Montserrat', sans-serif;
+  height: 100%;
+  color: #333;
 }
 
-.container {
-  text-align: center;
-  margin-top: 200px;
+body {
+  scale: 1.2;
+}
+/* 로그인 페이지 전체 컨테이너 */
+.login-page {
+  background-color: #ebf2fb;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-.main-center {
-  margin: auto;
-  max-width: 550px;
-  padding: 100px;
-}
-
+/* 로고 스타일 */
 .logo img {
-  width: 211px;
+  width: 150px;
+  /* 로고 크기를 적절히 줄임 */
+  margin-bottom: 30px;
+  filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1));
+  /* 그림자 효과 추가 */
+}
+
+/* 메인 컨테이너 */
+.main-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.1);  /* 부드러운 그림자 */
+  border-radius: 10px;  /* 둥근 테두리 */
+
+  padding: 40px 30px;
+  max-width: 00px;
+  width: 100%;
+  text-align: center;
+}
+
+/* 행 스타일 */
+.row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 20px;
 }
 
-.row {
-  align-items: center;
-  margin: 10px 0;
-}
-
-.input-group-addon {
-  margin-right: 5px;
-}
-
+/* 입력 필드 스타일 */
 .form-control {
-  flex: 1;
-  padding: 10px;
+  width: 100%;
+  padding: 12px 15px;
   font-size: 14px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.btn-try-login {
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 6px rgba(0, 123, 255, 0.4);
+  outline: none;
+}
+
+/* 버튼 스타일 */
+.btn-try-to-login,
+.btn-try-to-join {
+  margin-top: 15px;
+  max-width: 350px;
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   font-size: 16px;
-  background-color: #007bff;
-  color: white;
+  font-weight: bold;
+  text-transform: uppercase;
   border: none;
-  border-radius: 4px;
+  border-radius: 25px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
 }
 
-.btn-try-join {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  background-color: #688bb8;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
+.btn-try-to-login {
+  background: linear-gradient(90deg, #007bff, #0056b3);
+  /* 그라디언트 배경 */
+  color: #ffffff;
+  box-shadow: 0px 4px 8px rgba(0, 123, 255, 0.3);
 }
 
-.btn-try-login:hover {
-  background-color: #0056b3;
+.btn-try-to-login:hover {
+  background: linear-gradient(90deg, #0056b3, #003580);
+  box-shadow: 0px 6px 12px rgba(0, 123, 255, 0.5);
 }
 
+.btn-try-to-join {
+  background: linear-gradient(90deg, #688bb8, #5576a1);
+  /* 부드러운 그라디언트 */
+  color: #ffffff;
+  box-shadow: 0px 4px 8px rgba(104, 139, 184, 0.3);
+}
+
+.btn-try-to-join:hover {
+  background: linear-gradient(90deg, #5576a1, #3e5b87);
+  box-shadow: 0px 6px 12px rgba(104, 139, 184, 0.5);
+}
+
+/* 푸터 스타일 */
 #container-footer {
   text-align: center;
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  border-top: 1px solid #dbdbdb;
-  padding: 20px;
-  font-size: 9px;
-  background-color: #fff;
+  font-size: 12px;
+  color: #888;
+  margin-top: 40px;
+  padding: 10px;
 }

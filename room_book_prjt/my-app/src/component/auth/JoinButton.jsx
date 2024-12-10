@@ -6,7 +6,7 @@ const LoginButton = ({ onClick }) => {
     <div className="row seperate-row">
       <button
         type="button"
-        className="btn btn-primary btn-lg btn-block btn-try-join"
+        className="btn btn-primary btn-lg btn-block btn-try-to-join"
         onClick={onClick}
       >
         가입하기

@@ -6,7 +6,7 @@ const LoginButton = ({ onClick }) => {
     <div className="row seperate-row">
       <button
         type="button"
-        className="btn btn-primary btn-lg btn-block btn-try-login"
+        className="btn btn-primary btn-lg btn-block btn-try-to-login"
         onClick={onClick}
       >
         Login

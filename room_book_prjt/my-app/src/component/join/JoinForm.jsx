@@ -39,7 +39,6 @@ const JoinForm = () => {
     }
   };
 
-
   return (
     <div className="join-form">
       <h2>회원가입</h2>

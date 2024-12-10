@@ -1,12 +1,13 @@
-// components/auth/LoginInput.jsx
 import React from 'react';
 
-const joinInput = ({ type, name, value, placeholder, onChange, onKeyDown, icon }) => {
+const JoinInput = ({ type, name, value, placeholder, onChange, onKeyDown, icon }) => {
   return (
-    <div className="row seperate-row">
-      <span className="input-group-addon">
-        <i className={`fa fa-${icon}`} aria-hidden="true"></i>
-      </span>
+    <div className="row">
+      {icon && (
+        <span className="input-group-addon">
+          <i className={`fa fa-${icon}`} aria-hidden="true"></i>
+        </span>
+      )}
       <input
         type={type}
         className="form-control"
@@ -20,4 +21,4 @@ const joinInput = ({ type, name, value, placeholder, onChange, onKeyDown, icon }
   );
 };
 
-export default joinInput;
+export default JoinInput;
