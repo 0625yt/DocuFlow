@@ -1,4 +1,8 @@
 import React, { useState } from 'react';
+import JoinLogo from '../auth/LoginLogo';
+import JoinInput from './JoinInput';
+import JoinToButton from './JoinToButton';
+import './Join.css';
 
 const JoinForm = () => {
   const [userInfo, setUserInfo] = useState({
@@ -6,6 +10,7 @@ const JoinForm = () => {
     phonenumber: '',
     userId: '',
     password: '',
+    email: '',
   });
 
   const handleInputChange = (e) => {
@@ -34,39 +39,40 @@ const JoinForm = () => {
     }
   };
 
-  
+
   return (
     <div className="join-form">
       <h2>회원가입</h2>
-      <input
+      <JoinLogo />
+      <JoinInput
         type="text"
         name="username"
         placeholder="사용자 이름"
         value={userInfo.username}
         onChange={handleInputChange}
       />
-      <input
+      <JoinInput
         type="text"
-        name="username"
+        name="userId"
         placeholder="사용자 아이디"
-        value={userInfo.username}
+        value={userInfo.userId}
         onChange={handleInputChange}
       />
-      <input
+      <JoinInput
         type="email"
         name="email"
         placeholder="이메일"
         value={userInfo.email}
         onChange={handleInputChange}
       />
-      <input
+      <JoinInput
         type="password"
         name="password"
         placeholder="비밀번호"
         value={userInfo.password}
         onChange={handleInputChange}
       />
-      <button onClick={handleJoin}>회원가입</button>
+      <JoinToButton onClick={handleJoin} />
     </div>
   );
 };
