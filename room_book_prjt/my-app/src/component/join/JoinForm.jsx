@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // React Router의 useNavigate 사용
 import JoinLogo from '../auth/LoginLogo';
 import JoinInput from './JoinInput';
 import JoinToButton from './JoinToButton';
+import BacktoLoginButton from './BacktoLoginButton';
 import './Join.css';
 
 const JoinForm = () => {
+  const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState({
     username: '',
     phonenumber: '',
     userId: '',
     password: '',
+    passwordCheck: '',
     email: '',
-  });
+  }
+  );
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -27,6 +32,8 @@ const JoinForm = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+
+
         },
         body: JSON.stringify(userInfo),
       });
@@ -39,9 +46,16 @@ const JoinForm = () => {
     }
   };
 
+  // 회원가입 페이지로 이동하는 함수
+  const handleLogin = () => {
+    navigate('/login'); // 회원가입 페이지로 이동
+  };
+
   return (
     <div className="join-form">
-      <h2>회원가입</h2>
+      <h2>
+        <span aria-hidden="true">🔑</span>
+      </h2>
       <JoinLogo />
       <JoinInput
         type="text"
@@ -71,7 +85,15 @@ const JoinForm = () => {
         value={userInfo.password}
         onChange={handleInputChange}
       />
+      <JoinInput
+        type="password"
+        name="passwordCheck"
+        placeholder="비밀번호 확인"
+        value={userInfo.passwordCheck}
+        onChange={handleInputChange}
+      />
       <JoinToButton onClick={handleJoin} />
+      <BacktoLoginButton onClick={handleLogin} />
     </div>
   );
 };

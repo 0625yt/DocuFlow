@@ -14,7 +14,7 @@ body {
 }
 /* 로그인 페이지 전체 컨테이너 */
 .login-page {
-  background-color: #ebf2fb;
+  background: linear-gradient(to bottom, #ebf2fb, #ffffff); /* 부드러운 그라디언트 */
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -22,11 +22,16 @@ body {
   align-items: center;
 }
 
+.login-header {
+  font-size: 2rem;
+  color: #333;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
 /* 로고 스타일 */
 .logo img {
-  width: 150px;
-  /* 로고 크기를 적절히 줄임 */
-  margin-bottom: 30px;
+  width: 100px;
   filter: drop-shadow(0px 4px 6px rgba(0, 0, 0, 0.1));
   /* 그림자 효과 추가 */
 }
@@ -75,7 +80,7 @@ body {
 /* 버튼 스타일 */
 .btn-try-to-login,
 .btn-try-to-join {
-  margin-top: 15px;
+  margin-top: 5px;
   max-width: 350px;
   width: 100%;
   padding: 12px;

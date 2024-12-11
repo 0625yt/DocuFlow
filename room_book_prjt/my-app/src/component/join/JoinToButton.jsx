@@ -5,7 +5,7 @@ const JoinToButton = ({ onClick }) => {
     <div className="seperate-join-row">
       <button
         type="button"
-        className="btn-try-join-left"
+        className="btn-try-join"
         onClick={onClick}
       >
         가입하기
