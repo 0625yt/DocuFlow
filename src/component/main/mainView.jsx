@@ -3,164 +3,133 @@ import axios from "axios";
 import "./main.css";
 
 const FolderAndDocumentViewer = () => {
-  const [folders, setFolders] = useState([]); // 폴더 목록 상태
-  const [selectedFolder, setSelectedFolder] = useState(null); // 선택된 폴더 상태
-  const [documentContent, setDocumentContent] = useState(""); // 선택된 문서의 내용
-  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 }); // 컨텍스트 메뉴 상태
+  const [folders, setFolders] = useState([]);
+  const [selectedFolderId, setSelectedFolderId] = useState(null);
+  const [selectedFolderName, setSelectedFolderName] = useState(null);
+  const [documentContent, setDocumentContent] = useState("");
+  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
 
-  // 우클릭 시 사용자 정의 컨텍스트 메뉴 표시
   const handleContextMenu = (event) => {
     event.preventDefault();
     setContextMenu({
-      visible: true, // 메뉴 표시
-      x: event.clientX, // 클릭 위치 X 좌표
-      y: event.clientY, // 클릭 위치 Y 좌표
+      visible: true,
+      x: event.clientX,
+      y: event.clientY,
     });
   };
 
-  // 폴더 삭제 핸들러
-  const handleDeleteFolder = () => {
-    if (!folders.length) { // 폴더가 없으면 알림
-      alert("삭제할 폴더가 없습니다.");
-      return;
-    }
-    const folderToDelete = selectedFolder || folders[folders.length - 1]; // 선택된 폴더 또는 마지막 폴더 삭제
-    setFolders((prev) => prev.filter((folder) => folder !== folderToDelete)); // 폴더 목록에서 삭제
-    setSelectedFolder(null); // 선택된 폴더 초기화
-    setContextMenu({ ...contextMenu, visible: false }); // 컨텍스트 메뉴 닫기
-  };
-
-  // 컨텍스트 메뉴 숨기기
   const handleClick = () => {
-    if (contextMenu.visible) setContextMenu({ ...contextMenu, visible: false }); // 메뉴 숨기기
+    if (contextMenu.visible) setContextMenu({ ...contextMenu, visible: false });
   };
 
-  // 새로운 폴더 생성
   const handleCreateFolder = async () => {
     const folderName = prompt("폴더 이름을 입력하세요:");
-    const selectedParentFolderId = "";
     const folderDescription = "테스트 설명";
     const isRootFolder = true;
     const isSharedFolder = true;
 
     if (folderName) {
-        const userInfo = sessionStorage.getItem('user');
-        if (!userInfo) {
-            alert('로그인된 사용자 정보가 없습니다.');
-            return;
-        }
-
-        let parsedUserInfo;
-        try {
-            parsedUserInfo = JSON.parse(userInfo);
-            console.log("사용자 ID:", parsedUserInfo.id);  // 사용자 ID 콘솔 출력
-        } catch (error) {
-            alert('사용자 정보가 잘못되었습니다.');
-            return;
-        }
-
-        // `userId`를 Long 타입으로 변환
-        const userId = parseInt(1, 10); // String -> Long 변환
-
-        if (isNaN(userId)) {
-            alert("유효한 사용자 ID가 아닙니다.");
-            return;
-        }
-
-        const requestData = {
-            folderName: folderName,
-            userId: userId, // Long 타입 userId
-            parentFolderId: selectedParentFolderId || null,
-            description: folderDescription,
-            isRoot: isRootFolder,
-            isShared: isSharedFolder,
-        };
-
-        try {
-            const response = await fetch('http://localhost:8080/folders/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(requestData),
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                alert(data.message);
-                setFolders((prevFolders) => [...prevFolders, folderName]);
-            } else {
-                const errorText = await response.text();
-                alert(`폴더 생성에 실패했습니다: ${errorText}`);
-            }
-        } catch (error) {
-            console.error("폴더 생성 오류:", error);
-            alert("폴더 생성 중 오류가 발생했습니다.");
-        }
-    }
-};
-
-useEffect(() => {
-  const fetchFolders = async () => {
-    const userInfo = sessionStorage.getItem("user");
-    if (!userInfo) {
-      alert("로그인된 사용자 정보가 없습니다.");
-      return;
-    }
-
-    let parsedUserInfo;
-    try {
-      parsedUserInfo = JSON.parse(userInfo);
-    } catch (e) {
-      console.error("사용자 정보 파싱 오류:", e);
-      return;
-    }
-
-    const userId = parseInt(parsedUserInfo.id, 10);
-    if (isNaN(userId)) {
-      alert("유효한 사용자 ID가 아닙니다.");
-      return;
-    }
-
-    try {
-      const response = await fetch(`http://localhost:8080/folders/user/${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setFolders(data); // 폴더 목록 업데이트
-      } else {
-        console.error("폴더 목록 불러오기 실패");
+      const userInfo = sessionStorage.getItem("user");
+      if (!userInfo) {
+        alert("로그인된 사용자 정보가 없습니다.");
+        return;
       }
-    } catch (error) {
-      console.error("폴더 목록 불러오는 중 오류:", error);
+
+      let parsedUserInfo;
+      try {
+        parsedUserInfo = JSON.parse(userInfo);
+      } catch (error) {
+        alert("사용자 정보가 잘못되었습니다.");
+        return;
+      }
+
+      const userId = parsedUserInfo.id;
+      if (!userId || typeof userId !== "string") {
+        alert("유효한 사용자 ID가 아닙니다.");
+        return;
+      }
+
+      const requestData = {
+        folderName,
+        userId,
+        parentFolderId: null,
+        description: folderDescription,
+        isRoot: isRootFolder,
+        isShared: isSharedFolder,
+      };
+
+      try {
+        const response = await fetch("http://localhost:8080/folders/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestData),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setFolders((prev) => [...prev, data]);
+          alert("폴더가 생성되었습니다.");
+        } else {
+          const errorText = await response.text();
+          alert(`폴더 생성 실패: ${errorText}`);
+        }
+      } catch (error) {
+        console.error("폴더 생성 오류:", error);
+        alert("폴더 생성 중 오류가 발생했습니다.");
+      }
     }
   };
 
-  fetchFolders(); // 컴포넌트가 마운트될 때 폴더 불러오기
-}, []);
+  const handleDeleteFolder = async() => {
+    if (!folders.length) {
+      alert("삭제할 폴더가 없습니다.");
+      return;
+    }
 
-  // 문서 업로드
+    const filtered = folders.filter((folder) => folder.id !== selectedFolderId);
+    setFolders(filtered);
+    setSelectedFolderId(null);
+    setSelectedFolderName(null);
+    setContextMenu({ ...contextMenu, visible: false });
+
+    try {``
+      const response = await fetch("http://localhost:8080/folders/delete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(folder.id),
+      });
+    } catch (error) {
+      console.error("폴더 생성 오류:", error);
+      alert("폴더 생성 중 오류가 발생했습니다.");
+    }
+  };
+
   const handleUploadDocument = async () => {
-    if (!selectedFolder) { // 폴더를 먼저 선택하지 않으면 알림
+    if (!selectedFolderId) {
       alert("먼저 폴더를 선택하세요!");
       return;
     }
-    const fileInput = document.createElement("input"); // 파일 입력 요소 생성
-    fileInput.type = "file"; // 파일 타입 설정
-    fileInput.accept = ".hwp"; // .hwp 파일만 선택 가능
-    fileInput.onchange = async (e) => { // 파일 선택 시 처리
+
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".hwp";
+
+    fileInput.onchange = async (e) => {
       const file = e.target.files[0];
       if (file) {
         try {
           const formData = new FormData();
-          formData.append("file", file); // 파일 추가
-          formData.append("folder", selectedFolder); // 선택된 폴더 추가
-  
+          formData.append("file", file);
+          formData.append("folderId", selectedFolderId);
+
           await axios.post("http://localhost:8080/api/upload/document", formData, {
-            headers: {
-              "Content-Type": "multipart/form-data", // 멀티파트 데이터로 파일 전송
-            },
+            headers: { "Content-Type": "multipart/form-data" },
           });
-  
+
           alert("파일이 성공적으로 업로드되었습니다!");
         } catch (error) {
           console.error("파일 업로드 오류:", error);
@@ -168,62 +137,103 @@ useEffect(() => {
         }
       }
     };
-    fileInput.click(); // 파일 선택 창 열기
-    setContextMenu({ ...contextMenu, visible: false }); // 컨텍스트 메뉴 닫기
+
+    fileInput.click();
+    setContextMenu({ ...contextMenu, visible: false });
   };
 
-  // 폴더 선택 및 해당 폴더의 문서 내용 불러오기
-  const handleFolderSelect = async (folderName) => {
-    setSelectedFolder(folderName); // 선택된 폴더 상태 설정
+  useEffect(() => {
+    const fetchFolders = async () => {
+      const userInfo = sessionStorage.getItem("user");
+      if (!userInfo) {
+        alert("로그인된 사용자 정보가 없습니다.");
+        return;
+      }
+
+      let parsedUserInfo;
+      try {
+        parsedUserInfo = JSON.parse(userInfo);
+      } catch (e) {
+        console.error("사용자 정보 파싱 오류:", e);
+        return;
+      }
+
+      const userId = parsedUserInfo.id;
+      if (!userId || typeof userId !== "string") {
+        alert("유효한 사용자 ID가 아닙니다.");
+        return;
+      }
+
+      try {
+        const response = await fetch("http://localhost:8080/folders/select", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ userId }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setFolders(data);
+        } else {
+          console.error("폴더 목록 불러오기 실패");
+        }
+      } catch (error) {
+        console.error("폴더 목록 불러오는 중 오류:", error);
+      }
+    };
+
+    fetchFolders();
+  }, []);
+
+  const handleFolderSelect = async (folderId, folderName) => {
+    setSelectedFolderId(folderId);
+    setSelectedFolderName(folderName);
+
     try {
-      const response = await axios.get(`http://localhost:8080/api/folder/${folderName}`); // 폴더 내용 가져오기
-      setDocumentContent(response.data.content || "문서 내용이 없습니다."); // 문서 내용 설정
+      const response = await axios.get(`http://localhost:8080/api/folder/${folderId}`);
+      setDocumentContent(response.data.content || "문서 내용이 없습니다.");
     } catch (error) {
-      console.error("폴더 내용 불러오기 오류:", error);
+      console.error("문서 내용 불러오기 오류:", error);
       setDocumentContent("문서 내용을 불러오지 못했습니다.");
     }
   };
 
   return (
     <div className="container" onContextMenu={handleContextMenu} onClick={handleClick}>
-      {/* 사용자 정의 컨텍스트 메뉴 */}
       {contextMenu.visible && (
-        <ul
-          className="context-menu"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <li onClick={handleCreateFolder}>폴더 생성</li> {/* 폴더 생성 클릭 */}
-          <li onClick={handleDeleteFolder}>폴더 삭제</li> {/* 폴더 삭제 클릭 */}
-          <li onClick={handleUploadDocument}>문서 업로드</li> {/* 문서 업로드 클릭 */}
+        <ul className="context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
+          <li onClick={handleCreateFolder}>폴더 생성</li>
+          <li onClick={handleDeleteFolder}>폴더 삭제</li>
+          <li onClick={handleUploadDocument}>문서 업로드</li>
         </ul>
       )}
 
-      {/* 왼쪽 패널: 폴더 목록 */}
       <div className="left-pane">
         <h2>폴더 목록</h2>
         <ul>
-          {folders.map((folder, index) => (
+          {folders.map((folder) => (
             <li
-              key={index}
-              onClick={() => handleFolderSelect(folder)} // 폴더 클릭 시 내용 불러오기
-              className={folder === selectedFolder ? "selected" : ""} // 선택된 폴더 강조
+              key={folder.id}
+              onClick={() => handleFolderSelect(folder.id, folder.folderName)}
+              className={folder.id === selectedFolderId ? "selected" : ""}
             >
-              {folder}
+              {folder.folderName}
             </li>
           ))}
         </ul>
       </div>
 
-      {/* 오른쪽 패널: 문서 뷰어 */}
       <div className="right-pane">
         <h2>문서 뷰어</h2>
-        {selectedFolder ? (
+        {selectedFolderId ? (
           <div>
-            <h3>선택된 폴더: {selectedFolder}</h3>
-            <pre>{documentContent}</pre> {/* 문서 내용 표시 */}
+            <h3>선택된 폴더: {selectedFolderName}</h3>
+            <pre>{documentContent}</pre>
           </div>
         ) : (
-          <p>폴더를 선택하여 내용을 확인하세요.</p> /* 폴더 선택 안내 */
+          <p>폴더를 선택하여 내용을 확인하세요.</p>
         )}
       </div>
     </div>
