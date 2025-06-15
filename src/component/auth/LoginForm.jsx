@@ -7,9 +7,9 @@ import JoinButton from './JoinButton';
 
 const LoginForm = () => {
   const [credentials, setCredentials] = useState({ LOGIN_ID: '', LOGIN_PW: '' });
-  const navigate = useNavigate(); // navigate 함수 생성
+  const navigate = useNavigate(); // 페이지 이동을 위한 navigate 함수 생성
 
-  // Handle input changes and update state
+  // 입력값 변경 시 상태 업데이트
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setCredentials({
@@ -18,14 +18,14 @@ const LoginForm = () => {
     });
   };
 
-  // Handle login on button click or Enter key press
+  // 로그인 버튼 클릭 또는 Enter 키 입력 시 로그인 처리
   const handleLogin = async () => {
     const { LOGIN_ID, LOGIN_PW } = credentials;
 
-    // Ensure both fields are filled
+    // 아이디와 비밀번호가 모두 입력되었는지 확인
     if (LOGIN_ID.trim() && LOGIN_PW.trim()) {
       try {
-        // Send login credentials to the backend API
+        // 로그인 정보를 백엔드 API로 전송
         const response = await fetch('http://localhost:8080/api/auth/login', {
           method: 'POST',
           headers: {
@@ -37,17 +37,16 @@ const LoginForm = () => {
           }),
         });
 
-        // Parse the JSON response
+        // JSON 응답 파싱
         const data = await response.json();
         console.log(data);
 
-        // Check if login was successful
+        // 로그인 성공 여부 확인
         if (data.status === 'success') {
-          alert('로그인 성공!');
-          // If login is successful, store user data in sessionStorage
+          // 로그인 성공 시 사용자 정보를 sessionStorage에 저장
           sessionStorage.setItem('user', JSON.stringify({ id: LOGIN_ID.trim() , pw: LOGIN_PW.trim()}));
 
-          // Redirect user to the main page
+          // 메인 페이지로 이동
           navigate('/main');
         } else {
           alert(data.message || '로그인 실패');
@@ -61,14 +60,14 @@ const LoginForm = () => {
     }
   };
 
-  // Handle the Enter key press to trigger login
+  // Enter 키 입력 시 로그인 처리
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       handleLogin();
     }
   };
 
-  // Redirect to the join page (회원가입)
+  // 회원가입 페이지로 이동
   const handleJoin = () => {
     navigate('/join');
   };
