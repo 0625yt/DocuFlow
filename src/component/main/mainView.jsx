@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../../styles/global.css";
+import { fetchFolders } from "../../api/folder";
 // import DeleteModal from "../modal/DeleteModal";
 // import Modal from "../common/Modal";
 
@@ -125,13 +126,12 @@ const FolderAndDocumentViewer = () => {
   };
 
   useEffect(() => {
-    const fetchFolders = async () => {
+    const fetchAndSetFolders = async () => {
       const userInfo = sessionStorage.getItem("user");
       if (!userInfo) {
         alert("로그인된 사용자 정보가 없습니다.");
         return;
       }
-
       let parsedUserInfo;
       try {
         parsedUserInfo = JSON.parse(userInfo);
@@ -139,17 +139,19 @@ const FolderAndDocumentViewer = () => {
         console.error("사용자 정보 파싱 오류:", e);
         return;
       }
-
       const userId = parsedUserInfo.id;
       if (!userId || typeof userId !== "string") {
         alert("유효한 사용자 ID가 아닙니다.");
         return;
       }
-
-      // TODO: fetchFolders API 함수로 대체 예정
+      try {
+        const data = await fetchFolders(userId);
+        setFolders(data);
+      } catch (e) {
+        console.error("폴더 목록 불러오기 실패:", e);
+      }
     };
-
-    fetchFolders();
+    fetchAndSetFolders();
   }, []);
 
   const handleFolderSelect = async (folderId, folderName) => {
