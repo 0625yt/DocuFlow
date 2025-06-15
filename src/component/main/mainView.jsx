@@ -2,8 +2,9 @@ import React from "react";
 import "../../styles/global.css";
 import useFolders from "../../hooks/useFolders";
 import useDocuments from "../../hooks/useDocuments";
-// import DeleteModal from "../modal/DeleteModal";
-// import Modal from "../common/Modal";
+import { isValidFolderName, escapeHtml } from "../../utils/validator";
+// DeleteModal 컴포넌트 import 예시 (사용 시 활성화)
+// Modal 컴포넌트 import 예시 (사용 시 활성화)
 
 const FolderAndDocumentViewer = () => {
   const userInfo = sessionStorage.getItem("user");
@@ -31,6 +32,7 @@ const FolderAndDocumentViewer = () => {
   } = useDocuments();
   const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0 });
 
+  // 우클릭 시 컨텍스트 메뉴 표시
   const handleContextMenu = (event) => {
     event.preventDefault();
     setContextMenu({
@@ -40,14 +42,20 @@ const FolderAndDocumentViewer = () => {
     });
   };
 
+  // 컨텍스트 메뉴 외부 클릭 시 메뉴 닫기
   const handleClick = () => {
     if (contextMenu.visible) setContextMenu({ ...contextMenu, visible: false });
   };
 
+  // 폴더 생성 핸들러
   const handleCreateFolder = async () => {
     const folderName = prompt("폴더 이름을 입력하세요:");
     if (!folderName) {
       alert("폴더 이름을 입력해야 합니다.");
+      return;
+    }
+    if (!isValidFolderName(folderName)) {
+      alert("폴더 이름은 한글, 영문, 숫자, 공백만 사용 가능하며 1~30자 이내여야 합니다.");
       return;
     }
     if (!userId) {
@@ -58,7 +66,7 @@ const FolderAndDocumentViewer = () => {
     const isRootFolder = true;
     const isSharedFolder = true;
     const requestData = {
-      folderName,
+      folderName: escapeHtml(folderName),
       userId,
       parentFolderId: null,
       description: folderDescription,
@@ -74,6 +82,7 @@ const FolderAndDocumentViewer = () => {
     }
   };
 
+  // 폴더 삭제 핸들러
   const handleDeleteFolder = async () => {
     if (!folders.length || !selectedFolderId) {
       alert("삭제할 폴더가 없습니다.");
@@ -89,6 +98,7 @@ const FolderAndDocumentViewer = () => {
     }
   };
 
+  // 문서 업로드 핸들러
   const handleUploadDocument = async () => {
     if (!selectedFolderId) {
       alert("먼저 폴더를 선택하세요!");
@@ -101,6 +111,16 @@ const FolderAndDocumentViewer = () => {
       const file = e.target.files[0];
       if (!file) {
         alert("업로드할 파일을 선택해야 합니다.");
+        return;
+      }
+      const allowedExt = ["hwp"];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (!allowedExt.includes(ext)) {
+        alert("허용되지 않은 파일 형식입니다. (hwp만 가능)");
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        alert("10MB 이하 파일만 업로드 가능합니다.");
         return;
       }
       try {
@@ -123,6 +143,7 @@ const FolderAndDocumentViewer = () => {
     setContextMenu({ ...contextMenu, visible: false });
   };
 
+  // 폴더 선택 시 문서 내용 불러오기
   const handleFolderSelect = async (folderId, folderName) => {
     try {
       handleSelect(folderId, folderName);

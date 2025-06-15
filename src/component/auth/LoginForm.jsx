@@ -39,12 +39,11 @@ const LoginForm = () => {
 
         // JSON 응답 파싱
         const data = await response.json();
-        console.log(data);
 
         // 로그인 성공 여부 확인
         if (data.status === 'success') {
-          // 로그인 성공 시 사용자 정보를 sessionStorage에 저장
-          sessionStorage.setItem('user', JSON.stringify({ id: LOGIN_ID.trim() , pw: LOGIN_PW.trim()}));
+          // 로그인 성공 시 사용자 정보를 sessionStorage에 저장(비밀번호는 저장하지 않음)
+          sessionStorage.setItem('user', JSON.stringify({ id: LOGIN_ID.trim() }));
 
           // 메인 페이지로 이동
           navigate('/main');

@@ -4,6 +4,7 @@ import { fetchDocument, uploadDocument } from "../api/document";
 export default function useDocuments() {
   const [documentContent, setDocumentContent] = useState("");
 
+  // 문서 내용을 불러오는 함수
   const loadDocument = async (folderId) => {
     try {
       const data = await fetchDocument(folderId);
@@ -13,6 +14,7 @@ export default function useDocuments() {
     }
   };
 
+  // 문서를 업로드하는 함수
   const upload = async (formData) => {
     await uploadDocument(formData);
   };

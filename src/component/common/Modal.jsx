@@ -1,13 +1,13 @@
 import React from "react";
 
+// 모달 컴포넌트
 const Modal = ({ isOpen, onClose, onDelete, message }) => {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
-        <h2>Are you sure you want to delete this?</h2>
-        <button onClick={onClose} style={styles.button}>
-          Close
-        </button>
+        <p>{message}</p>
+        <button onClick={onDelete}>삭제</button>
+        <button onClick={onClose}>취소</button>
       </div>
     </div>
   );
@@ -20,27 +20,19 @@ const styles = {
     left: 0,
     width: "100vw",
     height: "100vh",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0,0,0,0.3)",
     display: "flex",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
     zIndex: 1000,
   },
   modal: {
-    backgroundColor: "#fff",
-    padding: "20px",
-    borderRadius: "10px",
+    background: "white",
+    padding: 20,
+    borderRadius: 8,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+    minWidth: 300,
     textAlign: "center",
-    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-  },
-  button: {
-    marginTop: "10px",
-    padding: "10px 20px",
-    backgroundColor: "#4caf50",
-    color: "#fff",
-    border: "none",
-    borderRadius: "5px",
-    cursor: "pointer",
   },
 };
 
