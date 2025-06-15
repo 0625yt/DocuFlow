@@ -1,6 +1,6 @@
 import React from "react";
 
-const DeleteModal = ({ onClose }) => {
+const Modal = ({ isOpen, onClose, onDelete, message }) => {
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -44,4 +44,4 @@ const styles = {
   },
 };
 
-export default DeleteModal;
+export default Modal;

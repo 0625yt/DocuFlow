@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import "./main.css";
+import "../../styles/global.css";
+// import DeleteModal from "../modal/DeleteModal";
+// import Modal from "../common/Modal";
 
 const FolderAndDocumentViewer = () => {
   const [folders, setFolders] = useState([]);
@@ -58,27 +60,7 @@ const FolderAndDocumentViewer = () => {
         isShared: isSharedFolder,
       };
 
-      try {
-        const response = await fetch("http://localhost:8080/folders/create", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestData),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setFolders((prev) => [...prev, data]);
-          alert("폴더가 생성되었습니다.");
-        } else {
-          const errorText = await response.text();
-          alert(`폴더 생성 실패: ${errorText}`);
-        }
-      } catch (error) {
-        console.error("폴더 생성 오류:", error);
-        alert("폴더 생성 중 오류가 발생했습니다.");
-      }
+      // TODO: createFolder API 함수로 대체 예정
     }
   };
 
@@ -95,18 +77,7 @@ const FolderAndDocumentViewer = () => {
     setContextMenu({ ...contextMenu, visible: false });
 
     if (!selectedFolderId) return;
-    try {
-      await fetch("http://localhost:8080/folders/delete", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id: selectedFolderId }),
-      });
-    } catch (error) {
-      console.error("폴더 삭제 오류:", error);
-      alert("폴더 삭제 중 오류가 발생했습니다.");
-    }
+    // TODO: deleteFolder API 함수로 대체 예정
   };
 
   const handleUploadDocument = async () => {
@@ -141,11 +112,7 @@ const FolderAndDocumentViewer = () => {
           }
           formData.append("userId", userId);
 
-          await axios.post("http://localhost:8080/api/upload/document", formData, {
-            headers: { "Content-Type": "multipart/form-data" },
-          });
-
-          alert("파일이 성공적으로 업로드되었습니다!");
+          // TODO: uploadDocument API 함수로 대체 예정
         } catch (error) {
           console.error("파일 업로드 오류:", error);
           alert("파일 업로드에 실패했습니다.");
@@ -179,24 +146,7 @@ const FolderAndDocumentViewer = () => {
         return;
       }
 
-      try {
-        const response = await fetch("http://localhost:8080/folders/select", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ userId }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setFolders(data);
-        } else {
-          console.error("폴더 목록 불러오기 실패");
-        }
-      } catch (error) {
-        console.error("폴더 목록 불러오는 중 오류:", error);
-      }
+      // TODO: fetchFolders API 함수로 대체 예정
     };
 
     fetchFolders();
@@ -206,13 +156,7 @@ const FolderAndDocumentViewer = () => {
     setSelectedFolderId(folderId);
     setSelectedFolderName(folderName);
 
-    try {
-      const response = await axios.get(`http://localhost:8080/api/folder/${folderId}`);
-      setDocumentContent(response.data.content || "문서 내용이 없습니다.");
-    } catch (error) {
-      console.error("문서 내용 불러오기 오류:", error);
-      setDocumentContent("문서 내용을 불러오지 못했습니다.");
-    }
+    // TODO: fetchDocument API 함수로 대체 예정
   };
 
   return (
