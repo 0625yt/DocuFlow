@@ -3,10 +3,22 @@ import "../../styles/global.css";
 import useFolders from "../../hooks/useFolders";
 import useDocuments from "../../hooks/useDocuments";
 import { isValidFolderName, escapeHtml } from "../../utils/validator";
+import { useNavigate } from "react-router-dom";
+import Header from "../layout/Header";
+import Sidebar from "../layout/Sidebar";
+import DocumentTable from "../document/DocumentTable";
+import DocumentDetail from "../document/DocumentDetail";
+import DocumentUploadModal from "../document/DocumentUploadModal";
+import UserInfoModal from "../common/UserInfoModal";
 // DeleteModal 컴포넌트 import 예시 (사용 시 활성화)
 // Modal 컴포넌트 import 예시 (사용 시 활성화)
 
 const FolderAndDocumentViewer = () => {
+  const navigate = useNavigate();
+  const [userInfoOpen, setUserInfoOpen] = React.useState(false);
+  const [uploadOpen, setUploadOpen] = React.useState(false);
+  const [detailDoc, setDetailDoc] = React.useState(null);
+  const [documents, setDocuments] = React.useState([]);
   const userInfo = sessionStorage.getItem("user");
   let userId = "";
   if (userInfo) {
@@ -25,27 +37,9 @@ const FolderAndDocumentViewer = () => {
     handleDelete,
   } = useFolders(userId);
   const {
-    documentContent,
     loadDocument,
     upload,
-    setDocumentContent,
   } = useDocuments();
-  const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0 });
-
-  // 우클릭 시 컨텍스트 메뉴 표시
-  const handleContextMenu = (event) => {
-    event.preventDefault();
-    setContextMenu({
-      visible: true,
-      x: event.clientX,
-      y: event.clientY,
-    });
-  };
-
-  // 컨텍스트 메뉴 외부 클릭 시 메뉴 닫기
-  const handleClick = () => {
-    if (contextMenu.visible) setContextMenu({ ...contextMenu, visible: false });
-  };
 
   // 폴더 생성 핸들러
   const handleCreateFolder = async () => {
@@ -88,7 +82,6 @@ const FolderAndDocumentViewer = () => {
       alert("삭제할 폴더가 없습니다.");
       return;
     }
-    setContextMenu({ ...contextMenu, visible: false });
     try {
       await handleDelete(selectedFolderId);
       alert("폴더가 삭제되었습니다.");
@@ -96,51 +89,6 @@ const FolderAndDocumentViewer = () => {
       console.error("폴더 삭제 실패:", e);
       alert("폴더 삭제 실패: " + (e.message || e));
     }
-  };
-
-  // 문서 업로드 핸들러
-  const handleUploadDocument = async () => {
-    if (!selectedFolderId) {
-      alert("먼저 폴더를 선택하세요!");
-      return;
-    }
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = ".hwp";
-    fileInput.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file) {
-        alert("업로드할 파일을 선택해야 합니다.");
-        return;
-      }
-      const allowedExt = ["hwp"];
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (!allowedExt.includes(ext)) {
-        alert("허용되지 않은 파일 형식입니다. (hwp만 가능)");
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        alert("10MB 이하 파일만 업로드 가능합니다.");
-        return;
-      }
-      try {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("folderId", selectedFolderId);
-        formData.append("fileName", file.name);
-        formData.append("fileSize", file.size);
-        formData.append("fileType", file.type);
-        formData.append("filePath", file.webkitRelativePath || file.name);
-        formData.append("userId", userId);
-        await upload(formData);
-        alert("파일이 성공적으로 업로드되었습니다!");
-      } catch (error) {
-        console.error("파일 업로드 실패:", error);
-        alert("파일 업로드에 실패했습니다. 네트워크 상태를 확인하거나, 파일 형식을 확인하세요.");
-      }
-    };
-    fileInput.click();
-    setContextMenu({ ...contextMenu, visible: false });
   };
 
   // 폴더 선택 시 문서 내용 불러오기
@@ -154,42 +102,83 @@ const FolderAndDocumentViewer = () => {
     }
   };
 
+  // 로그아웃 핸들러
+  const handleLogout = () => {
+    sessionStorage.removeItem("user");
+    navigate("/login");
+  };
+
+  // 회원 정보 아이콘 클릭 핸들러
+  const handleUserInfo = () => setUserInfoOpen(true);
+  const handleUserInfoClose = () => setUserInfoOpen(false);
+
+  // 문서 업로드 핸들러(모달)
+  const handleUploadModal = () => setUploadOpen(true);
+  const handleUploadClose = () => setUploadOpen(false);
+  const handleUpload = (file) => {
+    if (file.type !== "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      alert("docx 파일만 업로드 가능합니다.");
+      return;
+    }
+    console.log("업로드 파일:", file);
+    // TODO: 실제 업로드 API 연동 필요
+    setDocuments(prev => [
+      ...prev,
+      {
+        id: Date.now(),
+        name: file.name,
+        author: userId,
+        date: new Date().toISOString().slice(0, 10),
+        size: (file.size / 1024 / 1024).toFixed(2) + "MB",
+        file,
+        content: "(업로드된 문서 내용 예시)",
+      },
+    ]);
+  };
+
+  // 문서 미리보기 핸들러
+  const handlePreview = (doc) => setDetailDoc(doc);
+  const handlePreviewClose = () => setDetailDoc(null);
+
+  // 문서 다운로드 핸들러(예시)
+  const handleDownload = (doc) => {
+    alert("다운로드 기능은 실제 구현 필요: " + doc.name);
+  };
+
+  // 문서 삭제 핸들러(예시)
+  const handleDeleteDoc = (doc) => {
+    if (window.confirm("정말 삭제하시겠습니까?")) {
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
+    }
+  };
+
   return (
-    <div className="container" onContextMenu={handleContextMenu} onClick={handleClick}>
-      {contextMenu.visible && (
-        <ul className="context-menu" style={{ top: contextMenu.y, left: contextMenu.x }}>
-          <li onClick={handleCreateFolder}>폴더 생성</li>
-          <li onClick={handleDeleteFolder}>폴더 삭제</li>
-          <li onClick={handleUploadDocument}>문서 업로드</li>
-        </ul>
-      )}
-
-      <div className="left-pane">
-        <h2>폴더 목록</h2>
-        <ul>
-          {folders.map((folder) => (
-            <li
-              key={folder.id}
-              onClick={() => handleFolderSelect(folder.id, folder.folderName)}
-              className={folder.id === selectedFolderId ? "selected" : ""}
-            >
-              {folder.folderName}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="right-pane">
-        <h2>문서 뷰어</h2>
-        {selectedFolderId ? (
-          <div>
-            <h3>선택된 폴더: {selectedFolderName}</h3>
-            <pre>{documentContent}</pre>
+    <div style={{ width: "100vw", height: "100vh", background: "#f9f9f9" }}>
+      <Header onLogout={handleLogout} onUserInfo={handleUserInfo} />
+      <Sidebar
+        folders={folders}
+        selectedFolderId={selectedFolderId}
+        onSelect={handleFolderSelect}
+        onAddFolder={handleCreateFolder}
+        onDeleteFolder={handleDeleteFolder}
+      />
+      <main style={{ marginLeft: 220, paddingTop: 70, paddingRight: 32, paddingLeft: 32 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>
+            {selectedFolderName ? `폴더: ${selectedFolderName}` : "폴더를 선택하세요"}
           </div>
-        ) : (
-          <p>폴더를 선택하여 내용을 확인하세요.</p>
-        )}
-      </div>
+          <button onClick={handleUploadModal} style={{ background: "#0984e3", color: "white", border: "none", borderRadius: 4, padding: "7px 18px", fontWeight: 600, cursor: "pointer" }}>문서 업로드</button>
+        </div>
+        <DocumentTable
+          documents={documents}
+          onPreview={handlePreview}
+          onDownload={handleDownload}
+          onDelete={handleDeleteDoc}
+        />
+      </main>
+      <UserInfoModal isOpen={userInfoOpen} onClose={handleUserInfoClose} userId={userId} />
+      <DocumentUploadModal isOpen={uploadOpen} onClose={handleUploadClose} onUpload={handleUpload} />
+      <DocumentDetail document={detailDoc} onClose={handlePreviewClose} />
     </div>
   );
 };
