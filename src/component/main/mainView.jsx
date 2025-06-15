@@ -1,16 +1,35 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React from "react";
 import "../../styles/global.css";
-import { fetchFolders } from "../../api/folder";
+import useFolders from "../../hooks/useFolders";
+import useDocuments from "../../hooks/useDocuments";
 // import DeleteModal from "../modal/DeleteModal";
 // import Modal from "../common/Modal";
 
 const FolderAndDocumentViewer = () => {
-  const [folders, setFolders] = useState([]);
-  const [selectedFolderId, setSelectedFolderId] = useState(null);
-  const [selectedFolderName, setSelectedFolderName] = useState(null);
-  const [documentContent, setDocumentContent] = useState("");
-  const [contextMenu, setContextMenu] = useState({ visible: false, x: 0, y: 0 });
+  const userInfo = sessionStorage.getItem("user");
+  let userId = "";
+  if (userInfo) {
+    try {
+      userId = JSON.parse(userInfo).id;
+    } catch (e) {
+      userId = "";
+    }
+  }
+  const {
+    folders,
+    selectedFolderId,
+    selectedFolderName,
+    handleSelect,
+    handleCreate,
+    handleDelete,
+  } = useFolders(userId);
+  const {
+    documentContent,
+    loadDocument,
+    upload,
+    setDocumentContent,
+  } = useDocuments();
+  const [contextMenu, setContextMenu] = React.useState({ visible: false, x: 0, y: 0 });
 
   const handleContextMenu = (event) => {
     event.preventDefault();
@@ -27,58 +46,47 @@ const FolderAndDocumentViewer = () => {
 
   const handleCreateFolder = async () => {
     const folderName = prompt("폴더 이름을 입력하세요:");
+    if (!folderName) {
+      alert("폴더 이름을 입력해야 합니다.");
+      return;
+    }
+    if (!userId) {
+      alert("로그인된 사용자 정보가 없습니다.");
+      return;
+    }
     const folderDescription = "테스트 설명";
     const isRootFolder = true;
     const isSharedFolder = true;
-
-    if (folderName) {
-      const userInfo = sessionStorage.getItem("user");
-      if (!userInfo) {
-        alert("로그인된 사용자 정보가 없습니다.");
-        return;
-      }
-
-      let parsedUserInfo;
-      try {
-        parsedUserInfo = JSON.parse(userInfo);
-      } catch (error) {
-        alert("사용자 정보가 잘못되었습니다.");
-        return;
-      }
-
-      const userId = parsedUserInfo.id;
-      if (!userId || typeof userId !== "string") {
-        alert("유효한 사용자 ID가 아닙니다.");
-        return;
-      }
-
-      const requestData = {
-        folderName,
-        userId,
-        parentFolderId: null,
-        description: folderDescription,
-        isRoot: isRootFolder,
-        isShared: isSharedFolder,
-      };
-
-      // TODO: createFolder API 함수로 대체 예정
+    const requestData = {
+      folderName,
+      userId,
+      parentFolderId: null,
+      description: folderDescription,
+      isRoot: isRootFolder,
+      isShared: isSharedFolder,
+    };
+    try {
+      await handleCreate(requestData);
+      alert("폴더가 생성되었습니다.");
+    } catch (e) {
+      console.error("폴더 생성 실패:", e);
+      alert("폴더 생성 실패: " + (e.message || e));
     }
   };
 
   const handleDeleteFolder = async () => {
-    if (!folders.length) {
+    if (!folders.length || !selectedFolderId) {
       alert("삭제할 폴더가 없습니다.");
       return;
     }
-
-    const filtered = folders.filter((folder) => folder.id !== selectedFolderId);
-    setFolders(filtered);
-    setSelectedFolderId(null);
-    setSelectedFolderName(null);
     setContextMenu({ ...contextMenu, visible: false });
-
-    if (!selectedFolderId) return;
-    // TODO: deleteFolder API 함수로 대체 예정
+    try {
+      await handleDelete(selectedFolderId);
+      alert("폴더가 삭제되었습니다.");
+    } catch (e) {
+      console.error("폴더 삭제 실패:", e);
+      alert("폴더 삭제 실패: " + (e.message || e));
+    }
   };
 
   const handleUploadDocument = async () => {
@@ -86,79 +94,43 @@ const FolderAndDocumentViewer = () => {
       alert("먼저 폴더를 선택하세요!");
       return;
     }
-
     const fileInput = document.createElement("input");
     fileInput.type = "file";
     fileInput.accept = ".hwp";
-
     fileInput.onchange = async (e) => {
       const file = e.target.files[0];
-      if (file) {
-        try {
-          const formData = new FormData();
-          formData.append("file", file);
-          formData.append("folderId", selectedFolderId);
-          formData.append("fileName", file.name);
-          formData.append("fileSize", file.size);
-          formData.append("fileType", file.type);
-          formData.append("filePath", file.webkitRelativePath || file.name);
-          const userInfo = sessionStorage.getItem("user");
-          let userId = "";
-          if (userInfo) {
-            try {
-              userId = JSON.parse(userInfo).id;
-            } catch (e) {
-              userId = "";
-            }
-          }
-          formData.append("userId", userId);
-
-          // TODO: uploadDocument API 함수로 대체 예정
-        } catch (error) {
-          console.error("파일 업로드 오류:", error);
-          alert("파일 업로드에 실패했습니다.");
-        }
+      if (!file) {
+        alert("업로드할 파일을 선택해야 합니다.");
+        return;
+      }
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folderId", selectedFolderId);
+        formData.append("fileName", file.name);
+        formData.append("fileSize", file.size);
+        formData.append("fileType", file.type);
+        formData.append("filePath", file.webkitRelativePath || file.name);
+        formData.append("userId", userId);
+        await upload(formData);
+        alert("파일이 성공적으로 업로드되었습니다!");
+      } catch (error) {
+        console.error("파일 업로드 실패:", error);
+        alert("파일 업로드에 실패했습니다. 네트워크 상태를 확인하거나, 파일 형식을 확인하세요.");
       }
     };
-
     fileInput.click();
     setContextMenu({ ...contextMenu, visible: false });
   };
 
-  useEffect(() => {
-    const fetchAndSetFolders = async () => {
-      const userInfo = sessionStorage.getItem("user");
-      if (!userInfo) {
-        alert("로그인된 사용자 정보가 없습니다.");
-        return;
-      }
-      let parsedUserInfo;
-      try {
-        parsedUserInfo = JSON.parse(userInfo);
-      } catch (e) {
-        console.error("사용자 정보 파싱 오류:", e);
-        return;
-      }
-      const userId = parsedUserInfo.id;
-      if (!userId || typeof userId !== "string") {
-        alert("유효한 사용자 ID가 아닙니다.");
-        return;
-      }
-      try {
-        const data = await fetchFolders(userId);
-        setFolders(data);
-      } catch (e) {
-        console.error("폴더 목록 불러오기 실패:", e);
-      }
-    };
-    fetchAndSetFolders();
-  }, []);
-
   const handleFolderSelect = async (folderId, folderName) => {
-    setSelectedFolderId(folderId);
-    setSelectedFolderName(folderName);
-
-    // TODO: fetchDocument API 함수로 대체 예정
+    try {
+      handleSelect(folderId, folderName);
+      await loadDocument(folderId);
+    } catch (e) {
+      console.error("문서 내용 불러오기 실패:", e);
+      alert("문서 내용을 불러오지 못했습니다. 네트워크 상태를 확인하세요.");
+    }
   };
 
   return (
