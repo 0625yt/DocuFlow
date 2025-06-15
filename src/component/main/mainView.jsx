@@ -82,7 +82,7 @@ const FolderAndDocumentViewer = () => {
     }
   };
 
-  const handleDeleteFolder = async() => {
+  const handleDeleteFolder = async () => {
     if (!folders.length) {
       alert("삭제할 폴더가 없습니다.");
       return;
@@ -94,17 +94,18 @@ const FolderAndDocumentViewer = () => {
     setSelectedFolderName(null);
     setContextMenu({ ...contextMenu, visible: false });
 
-    try {``
-      const response = await fetch("http://localhost:8080/folders/delete", {
+    if (!selectedFolderId) return;
+    try {
+      await fetch("http://localhost:8080/folders/delete", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(folder.id),
+        body: JSON.stringify({ id: selectedFolderId }),
       });
     } catch (error) {
-      console.error("폴더 생성 오류:", error);
-      alert("폴더 생성 중 오류가 발생했습니다.");
+      console.error("폴더 삭제 오류:", error);
+      alert("폴더 삭제 중 오류가 발생했습니다.");
     }
   };
 
@@ -125,6 +126,20 @@ const FolderAndDocumentViewer = () => {
           const formData = new FormData();
           formData.append("file", file);
           formData.append("folderId", selectedFolderId);
+          formData.append("fileName", file.name);
+          formData.append("fileSize", file.size);
+          formData.append("fileType", file.type);
+          formData.append("filePath", file.webkitRelativePath || file.name);
+          const userInfo = sessionStorage.getItem("user");
+          let userId = "";
+          if (userInfo) {
+            try {
+              userId = JSON.parse(userInfo).id;
+            } catch (e) {
+              userId = "";
+            }
+          }
+          formData.append("userId", userId);
 
           await axios.post("http://localhost:8080/api/upload/document", formData, {
             headers: { "Content-Type": "multipart/form-data" },
