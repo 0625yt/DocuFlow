@@ -13,6 +13,8 @@ const DocumentDetail = ({ document, onClose }) => {
   const [tab, setTab] = useState(0);
   const previewRef = useRef();
   const [error, setError] = useState("");
+  const [panelWidth, setPanelWidth] = useState(480);
+  const dragging = useRef(false);
 
   useEffect(() => {
     if (tab === 1 && document && document.file && document.file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
@@ -30,10 +32,33 @@ const DocumentDetail = ({ document, onClose }) => {
     }
   }, [tab, document]);
 
+  // 드래그 이벤트 핸들러
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!dragging.current) return;
+      const newWidth = Math.min(Math.max(window.innerWidth - e.clientX, 360), 900);
+      setPanelWidth(newWidth);
+    };
+    const handleMouseUp = () => {
+      dragging.current = false;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
   if (!document) return null;
 
   return (
-    <Box sx={styles.panel}>
+    <Box sx={{ ...styles.panel, width: panelWidth }}>
+      {/* 드래그 핸들 */}
+      <Box
+        sx={styles.dragHandle}
+        onMouseDown={() => { dragging.current = true; }}
+      />
       <Box sx={styles.header}>
         <Tabs
           value={tab}
@@ -79,7 +104,6 @@ const styles = {
     position: "fixed",
     top: 56,
     right: 0,
-    width: 480,
     height: "calc(100vh - 56px)",
     background: "#f8f9fa",
     boxShadow: "-2px 0 8px rgba(0,0,0,0.06)",
@@ -87,6 +111,20 @@ const styles = {
     borderLeft: "1px solid #dfe6e9",
     display: "flex",
     flexDirection: "column",
+    transition: "width 0.15s cubic-bezier(.4,0,.2,1)",
+  },
+  dragHandle: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    width: 8,
+    height: "100%",
+    cursor: "ew-resize",
+    zIndex: 2200,
+    background: "transparent",
+    '&:hover': {
+      background: "#dfe6e9",
+    },
   },
   header: {
     display: "flex",
