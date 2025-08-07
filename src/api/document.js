@@ -11,6 +11,14 @@ export async function uploadDocument(formData) {
 
 export async function fetchDocument(folderId) {
   // 문서 내용을 불러옵니다.
-  const response = await axios.get(`http://localhost:8080/api/folder/${folderId}`);
+  const response = await axios.get(`http://localhost:8080/api/download/document?folderId=${folderId}`);
   return response.data;
+}
+
+export async function downloadDocument(folderId) {
+  // 파일 다운로드를 위한 API 호출
+  return axios.get(
+    `http://localhost:8080/api/download/document?folderId=${folderId}`,
+    { responseType: 'blob' }
+  );
 } 
