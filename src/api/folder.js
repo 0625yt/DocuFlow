@@ -23,12 +23,9 @@ export async function createFolder(requestData) {
 }
 
 export async function deleteFolder(folderId) {
-  // 폴더를 삭제합니다.
-  const response = await fetch("http://localhost:8080/folders/delete", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id: folderId }),
+  const response = await fetch(`http://localhost:8080/folders/${folderId}`, {
+    method: "DELETE",
   });
   if (!response.ok) throw new Error("폴더 삭제 실패");
-  return response.json();
-} 
+  return response.text(); // 서버에서 문자열 반환하니 text()로
+}

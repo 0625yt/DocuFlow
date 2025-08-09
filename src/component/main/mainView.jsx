@@ -47,26 +47,34 @@ const FolderAndDocumentViewer = () => {
   } = useDocuments();
 
   // 페이지 로드 시 서버에서 파일 목록 불러오기
-  React.useEffect(() => {
-    const fetchFiles = async () => {
-      const res = await fetch("http://localhost:8080/api/files");
-      const fileNames = await res.json();
-      console.log("fileNames:", fileNames, Array.isArray(fileNames));
-      if (typeof fileNames === "string") {
-        try {
-          fileNames = JSON.parse(fileNames);
-        } catch (e) {
-          fileNames = [];
-        }
+React.useEffect(() => {
+  const fetchFiles = async () => {
+    const res = await fetch("http://localhost:8080/api/files");
+    let files = await res.json();
+
+    if (!Array.isArray(files)) {
+      try {
+        files = JSON.parse(files);
+      } catch (e) {
+        files = [];
       }
-      setDocuments(fileNames.map(name => ({
-        name,
-        fileUrl: `http://localhost:8080/files/${name}`,
-        downloadUrl: `http://localhost:8080/api/download?filename=${encodeURIComponent(name)}`,
-      })));
-    };
-    fetchFiles();
-  }, []);
+    }
+
+    // files: [{name, size, lastModified}, ...]
+    setDocuments(
+      files.map(f => ({
+        name: f.name,
+        size: f.size,
+        lastModified: f.lastModified,
+        fileUrl: `http://localhost:8080/files/${f.name}`,
+        downloadUrl: `http://localhost:8080/api/download?filename=${encodeURIComponent(f.name)}`
+      }))
+    );
+  };
+
+  fetchFiles();
+}, []);
+
 
   // 폴더 생성 핸들러
   const handleCreateFolder = async () => {
@@ -171,22 +179,29 @@ const FolderAndDocumentViewer = () => {
   };
 
   // 파일 목록 불러오기
-  const fetchFiles = async () => {
-    const res = await fetch("http://localhost:8080/api/files");
-    let fileNames = await res.json();
-    if (!Array.isArray(fileNames)) {
-      try {
-        fileNames = JSON.parse(fileNames);
-      } catch (e) {
-        fileNames = [];
-      }
+ const fetchFiles = async () => {
+  const res = await fetch("http://localhost:8080/api/files");
+  let files = await res.json();
+
+  if (!Array.isArray(files)) {
+    try {
+      files = JSON.parse(files);
+    } catch (e) {
+      files = [];
     }
-    setDocuments(fileNames.map(name => ({
-      name,
-      fileUrl: `http://localhost:8080/files/${name}`,
-      downloadUrl: `http://localhost:8080/api/download?filename=${encodeURIComponent(name)}`,
-    })));
-  };
+  }
+
+  setDocuments(
+    files.map(f => ({
+      name: f.name,
+      size: f.size,
+      lastModified: f.lastModified,
+      fileUrl: `http://localhost:8080/files/${f.name}`,
+      downloadUrl: `http://localhost:8080/api/download?filename=${encodeURIComponent(f.name)}`
+    }))
+  );
+};
+
 
   // 문서 미리보기 핸들러
   const handlePreview = async (doc) => {
@@ -212,10 +227,24 @@ const FolderAndDocumentViewer = () => {
     alert("다운로드 기능은 실제 구현 필요: " + doc.name);
   };
 
-  // 문서 삭제 핸들러(예시)
-  const handleDeleteDoc = (doc) => {
-    if (window.confirm("정말 삭제하시겠습니까?")) {
-      setDocuments(prev => prev.filter(d => d.id !== doc.id));
+  // 문서 삭제 핸들러(서버 연동)
+  const handleDeleteDoc = async (doc) => {
+    if (!doc?.name) return;
+    if (!window.confirm(`정말 삭제하시겠습니까?\n${doc.name}`)) return;
+
+    try {
+      const res = await fetch(`http://localhost:8080/api/files/${encodeURIComponent(doc.name)}`, {
+        method: "DELETE",
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(text || "삭제 실패");
+
+      // 성공 시 목록에서 제거
+      setDocuments(prev => prev.filter(d => d.name !== doc.name));
+      alert("삭제 완료");
+    } catch (e) {
+      console.error("삭제 실패:", e);
+      alert("삭제 실패: " + (e.message || e));
     }
   };
 
