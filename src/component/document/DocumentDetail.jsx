@@ -17,7 +17,7 @@ const DocumentDetail = ({ document, onClose }) => {
   const dragging = useRef(false);
 
   useEffect(() => {
-    if (tab === 1 && document && document.file && document.file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    if (tab === 1 && document && document.file && document.name.endsWith(".docx")) {
       // docx 미리보기
       const file = document.file;
       const render = async () => {
@@ -85,7 +85,7 @@ const DocumentDetail = ({ document, onClose }) => {
           )}
           {tab === 1 && (
             <Box sx={{ minHeight: 300 }}>
-              {document.file && document.file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ? (
+              {document.file && document.name.endsWith(".docx") ? (
                 <Box ref={previewRef} sx={{ background: "#fff", p: 2, borderRadius: 2, minHeight: 300, maxHeight: 600, overflow: "auto" }} />
               ) : (
                 <Typography color="error">지원하지 않는 파일 형식입니다.</Typography>
@@ -136,4 +136,4 @@ const styles = {
   },
 };
 
-export default DocumentDetail; 
+export default DocumentDetail;
