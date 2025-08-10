@@ -31,16 +31,16 @@ const DocumentTable = ({ documents, onPreview, onDownload, onDelete }) => {
         </TableHead>
         <TableBody>
           {normalizedDocuments.map(doc => (
-            <TableRow key={doc.name}>
-              <TableCell>{doc.name}</TableCell>
-              <TableCell>{doc.size ? (doc.size / 1024).toFixed(1) + " KB" : "-"}</TableCell>
-              <TableCell>{doc.lastModified ? new Date(doc.lastModified).toLocaleDateString() : "-"}</TableCell>
-              <TableCell>
-                <Tooltip title="미리보기"><IconButton color="primary" onClick={() => onPreview(doc)}><VisibilityIcon /></IconButton></Tooltip>
-                <Tooltip title="다운로드"><IconButton color="success" onClick={() => onDownload(doc)}><DownloadIcon /></IconButton></Tooltip>
-                <Tooltip title="삭제"><IconButton color="error" onClick={() => onDelete(doc)}><DeleteIcon /></IconButton></Tooltip>
-              </TableCell>
-            </TableRow>
+<TableRow key={doc.id}>
+  <TableCell>{doc.name}</TableCell>
+  <TableCell>{doc.size ? (doc.size / 1024).toFixed(1) + " KB" : "-"}</TableCell>
+  <TableCell>{doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleString() : "-"}</TableCell>
+  <TableCell>
+    <Tooltip title="미리보기"><IconButton color="primary" onClick={() => onPreview(doc)}><VisibilityIcon /></IconButton></Tooltip>
+    <Tooltip title="다운로드"><IconButton color="success" onClick={() => onDownload(doc)}><DownloadIcon /></IconButton></Tooltip>
+    <Tooltip title="삭제"><IconButton color="error" onClick={() => onDelete(doc)}><DeleteIcon /></IconButton></Tooltip>
+  </TableCell>
+</TableRow>
           ))}
         </TableBody>
       </Table>

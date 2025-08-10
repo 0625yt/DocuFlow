@@ -1,38 +1,57 @@
-import React, { useEffect, useState, useRef } from "react";
+// src/components/view/MainView.jsx
+import React, { useEffect, useRef, useState } from "react";
 import "../../styles/global.css";
 import useFolders from "../../hooks/useFolders";
-import useDocuments from "../../hooks/useDocuments";
 import { isValidFolderName, escapeHtml } from "../../utils/validator";
 import { useNavigate } from "react-router-dom";
+
 import Header from "../layout/Header";
 import Sidebar from "../layout/Sidebar";
 import DocumentTable from "../document/DocumentTable";
 import DocumentDetail from "../document/DocumentDetail";
 import DocumentUploadModal from "../document/DocumentUploadModal";
 import UserInfoModal from "../common/UserInfoModal";
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Avatar from '@mui/material/Avatar';
-import Box from '@mui/material/Box';
 
-const FolderAndDocumentViewer = () => {
+import AppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import Avatar from "@mui/material/Avatar";
+import Box from "@mui/material/Box";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Snackbar from "@mui/material/Snackbar";
+import Alert from "@mui/material/Alert";
+
+const API_BASE = "http://localhost:8080";
+
+const MainView = () => {
   const navigate = useNavigate();
-  const [userInfoOpen, setUserInfoOpen] = React.useState(false);
-  const [uploadOpen, setUploadOpen] = React.useState(false);
-  const [detailDoc, setDetailDoc] = React.useState(null);
-  const [documents, setDocuments] = React.useState([]);
+
+  const [userInfoOpen, setUserInfoOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [detailDoc, setDetailDoc] = useState(null);
+  const [documents, setDocuments] = useState([]);
   const [panelWidth, setPanelWidth] = useState(360);
   const dragging = useRef(false);
+
+  const [askFolderNameOpen, setAskFolderNameOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [snack, setSnack] = useState({ open: false, severity: "success", message: "" });
+
   const userInfo = sessionStorage.getItem("user");
   let userId = "";
   if (userInfo) {
     try {
       userId = JSON.parse(userInfo).id;
-    } catch (e) {
-      userId = "";
-    }
+    } catch {}
   }
+
   const {
     folders,
     selectedFolderId,
@@ -40,291 +59,246 @@ const FolderAndDocumentViewer = () => {
     handleSelect,
     handleCreate,
     handleDelete,
+    refreshFolders,
   } = useFolders(userId);
-  const {
-    loadDocument,
-    upload,
-  } = useDocuments();
 
-  // 페이지 로드 시 서버에서 파일 목록 불러오기
-React.useEffect(() => {
-  const fetchFiles = async () => {
-    const res = await fetch("http://localhost:8080/api/files");
-    let files = await res.json();
-
-    if (!Array.isArray(files)) {
-      try {
-        files = JSON.parse(files);
-      } catch (e) {
-        files = [];
-      }
-    }
-
-    // files: [{name, size, lastModified}, ...]
-    setDocuments(
-      files.map(f => ({
-        name: f.name,
-        size: f.size,
-        lastModified: f.lastModified,
-        fileUrl: `http://localhost:8080/files/${f.name}`,
-        downloadUrl: `http://localhost:8080/api/download?filename=${encodeURIComponent(f.name)}`
-      }))
-    );
-  };
-
-  fetchFiles();
-}, []);
-
-
-  // 폴더 생성 핸들러
-  const handleCreateFolder = async () => {
-    const folderName = prompt("폴더 이름을 입력하세요:");
-    if (!folderName) {
-      alert("폴더 이름을 입력해야 합니다.");
-      return;
-    }
-    if (!isValidFolderName(folderName)) {
-      alert("폴더 이름은 한글, 영문, 숫자, 공백만 사용 가능하며 1~30자 이내여야 합니다.");
-      return;
-    }
-    if (!userId) {
-      alert("로그인된 사용자 정보가 없습니다.");
-      return;
-    }
-    const folderDescription = "테스트 설명";
-    const isRootFolder = true;
-    const isSharedFolder = true;
-    const requestData = {
-      folderName: escapeHtml(folderName),
-      userId,
-      parentFolderId: null,
-      description: folderDescription,
-      isRoot: isRootFolder,
-      isShared: isSharedFolder,
-    };
-    try {
-      await handleCreate(requestData);
-      alert("폴더가 생성되었습니다.");
-    } catch (e) {
-      console.error("폴더 생성 실패:", e);
-      alert("폴더 생성 실패: " + (e.message || e));
-    }
-  };
-
-  // 폴더 삭제 핸들러
-  const handleDeleteFolder = async () => {
-    if (!folders.length || !selectedFolderId) {
-      alert("삭제할 폴더가 없습니다.");
+  // 폴더별 문서 불러오기
+  const fetchDocuments = async (folderId) => {
+    if (!folderId) {
+      setDocuments([]);
       return;
     }
     try {
-      await handleDelete(selectedFolderId);
-      alert("폴더가 삭제되었습니다.");
+      const res = await fetch(`${API_BASE}/documents?folderId=${folderId}`);
+      if (!res.ok) throw new Error("문서 목록을 불러오지 못했습니다.");
+      const list = await res.json();
+      setDocuments(Array.isArray(list) ? list : []);
     } catch (e) {
-      console.error("폴더 삭제 실패:", e);
-      alert("폴더 삭제 실패: " + (e.message || e));
+      console.error(e);
+      setSnack({ open: true, severity: "error", message: e.message });
+      setDocuments([]);
     }
   };
 
-  // 폴더 선택 시 문서 내용 불러오기
-  const handleFolderSelect = async (folderId, folderName) => {
-    try {
-      handleSelect(folderId, folderName);
-      await loadDocument(folderId);
-    } catch (e) {
-      console.error("문서 내용 불러오기 실패:", e);
-      alert("문서 내용을 불러오지 못했습니다. 네트워크 상태를 확인하세요.");
-    }
+  // 폴더별 문서 업로드
+  const uploadIntoFolder = async (file, folderId) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`${API_BASE}/documents/upload?folderId=${folderId}`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
   };
 
-  // 로그아웃 핸들러
-  const handleLogout = () => {
-    sessionStorage.removeItem("user");
-    navigate("/login");
-  };
-
-  // 회원 정보 아이콘 클릭 핸들러
-  const handleUserInfo = () => setUserInfoOpen(true);
-  const handleUserInfoClose = () => setUserInfoOpen(false);
-
-  // 문서 업로드 핸들러(모달)
-  const handleUploadModal = () => setUploadOpen(true);
-  const handleUploadClose = () => setUploadOpen(false);
-  const handleUpload = async (file) => {
-    const isDocx = file.name.endsWith(".docx");
-    if (!isDocx) {
-      alert("docx 파일만 업로드 가능합니다.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const res = await fetch("http://localhost:8080/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const text = await res.text();
-      if (!res.ok) throw new Error("업로드 실패: " + text);
-
-      alert("업로드 성공!");
-      await fetchFiles(); // 업로드 후 목록 새로고침
-
-    } catch (e) {
-      console.error("파일 업로드 실패:", e);
-      alert("파일 업로드 실패: " + (e.message || e));
-    }
-  };
-
-  // 파일 목록 불러오기
- const fetchFiles = async () => {
-  const res = await fetch("http://localhost:8080/api/files");
-  let files = await res.json();
-
-  if (!Array.isArray(files)) {
-    try {
-      files = JSON.parse(files);
-    } catch (e) {
-      files = [];
-    }
-  }
-
-  setDocuments(
-    files.map(f => ({
-      name: f.name,
-      size: f.size,
-      lastModified: f.lastModified,
-      fileUrl: `http://localhost:8080/files/${f.name}`,
-      downloadUrl: `http://localhost:8080/api/download?filename=${encodeURIComponent(f.name)}`
-    }))
-  );
-};
-
-
-  // 문서 미리보기 핸들러
-  const handlePreview = async (doc) => {
-  if (!doc.file && doc.name.endsWith(".docx")) {
-    try {
-      const res = await fetch(doc.downloadUrl);
-      const blob = await res.blob();
-      const file = new File([blob], doc.name, { type: blob.type });
-
-      setDetailDoc({ ...doc, file });
-    } catch (e) {
-      alert("파일 로딩 실패: " + (e.message || e));
-      return;
-    }
-  } else {
-    setDetailDoc(doc);
-  }
-};
-  const handlePreviewClose = () => setDetailDoc(null);
-
-  // 문서 다운로드 핸들러(예시)
-  const handleDownload = (doc) => {
-    alert("다운로드 기능은 실제 구현 필요: " + doc.name);
-  };
-
-  // 문서 삭제 핸들러(서버 연동)
-  const handleDeleteDoc = async (doc) => {
-    if (!doc?.name) return;
-    if (!window.confirm(`정말 삭제하시겠습니까?\n${doc.name}`)) return;
-
-    try {
-      const res = await fetch(`http://localhost:8080/api/files/${encodeURIComponent(doc.name)}`, {
-        method: "DELETE",
-      });
-      const text = await res.text();
-      if (!res.ok) throw new Error(text || "삭제 실패");
-
-      // 성공 시 목록에서 제거
-      setDocuments(prev => prev.filter(d => d.name !== doc.name));
-      alert("삭제 완료");
-    } catch (e) {
-      console.error("삭제 실패:", e);
-      alert("삭제 실패: " + (e.message || e));
-    }
+  // 폴더별 문서 삭제
+  const deleteDocument = async (docId) => {
+    const res = await fetch(`${API_BASE}/documents/${docId}`, { method: "DELETE" });
+    if (!res.ok && res.status !== 204) throw new Error(await res.text());
   };
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    fetchDocuments(selectedFolderId);
+  }, [selectedFolderId]);
+
+  useEffect(() => {
+    const onMove = (e) => {
       if (!dragging.current) return;
-      const newWidth = Math.min(Math.max(window.innerWidth - e.clientX, 360), 900);
-      setPanelWidth(newWidth);
+      const w = Math.min(Math.max(window.innerWidth - e.clientX, 360), 900);
+      setPanelWidth(w);
     };
-    const handleMouseUp = () => {
-      dragging.current = false;
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    const onUp = () => (dragging.current = false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
     };
   }, []);
+
+  // 폴더 생성
+  const handleCreateFolderSubmit = async () => {
+    const folderName = newFolderName.trim();
+    if (!folderName) {
+      setSnack({ open: true, severity: "warning", message: "폴더 이름을 입력하세요." });
+      return;
+    }
+    if (!isValidFolderName(folderName)) {
+      setSnack({ open: true, severity: "warning", message: "폴더 이름 형식이 올바르지 않습니다." });
+      return;
+    }
+    try {
+      await handleCreate({
+        folderName: escapeHtml(folderName),
+        userId,
+        parentFolderId: null,
+        description: "",
+        isRoot: false,
+        isShared: false,
+      });
+      await (refreshFolders?.());
+      setAskFolderNameOpen(false);
+      setSnack({ open: true, severity: "success", message: "폴더가 생성되었습니다." });
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", message: `폴더 생성 실패: ${e.message}` });
+    }
+  };
+
+  // 폴더 삭제
+  const handleConfirmDelete = async () => {
+    const target = confirmTarget;
+    setConfirmOpen(false);
+    try {
+      if (target?.type === "folder") {
+        await handleDelete(target.id);
+        await (refreshFolders?.());
+        setDocuments([]);
+        handleSelect(null, "");
+        setSnack({ open: true, severity: "success", message: "폴더를 삭제했습니다." });
+      } else if (target?.type === "doc") {
+        await deleteDocument(target.doc.id);
+        setDocuments((prev) => prev.filter((d) => d.id !== target.doc.id));
+        setSnack({ open: true, severity: "success", message: "문서를 삭제했습니다." });
+      }
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", message: e.message || "삭제 실패" });
+    }
+  };
+
+  const handleUpload = async (file) => {
+    if (!selectedFolderId) {
+      setSnack({ open: true, severity: "info", message: "먼저 폴더를 선택하세요." });
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith(".docx")) {
+      setSnack({ open: true, severity: "warning", message: "docx 파일만 업로드 가능합니다." });
+      return;
+    }
+    try {
+      const saved = await uploadIntoFolder(file, selectedFolderId);
+      setDocuments((prev) => [saved, ...prev]);
+      setUploadOpen(false);
+      setSnack({ open: true, severity: "success", message: "업로드 성공!" });
+    } catch (e) {
+      console.error(e);
+      setSnack({ open: true, severity: "error", message: `업로드 실패: ${e.message}` });
+    }
+  };
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#f9f9f9" }}>
       <AppBar position="static" sx={{ background: "#263a53" }}>
-  <Toolbar>
-    <Typography variant="h6" sx={{ flexGrow: 1, color: "#fff" }}>
-      <img src="/logo.png" alt="회사로고" style={{ height: 32, marginRight: 12 }} />
-      DocuFlow 업무시스템
-    </Typography>
-    <Avatar sx={{ bgcolor: "#1976d2" }}>U</Avatar>
-    <Typography sx={{ ml: 1, color: "#fff" }}>홍길동</Typography>
-    {/* 로그아웃 버튼 등 추가 */}
-  </Toolbar>
-</AppBar>
-      <Header onLogout={handleLogout} onUserInfo={handleUserInfo} />
+        <Toolbar>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: "#fff" }}>
+            <img src="/logo.png" alt="회사로고" style={{ height: 32, marginRight: 12 }} />
+            DocuFlow 업무시스템
+          </Typography>
+          <Avatar sx={{ bgcolor: "#1976d2" }}>U</Avatar>
+        </Toolbar>
+      </AppBar>
+
+      <Header onLogout={() => navigate("/login")} onUserInfo={() => setUserInfoOpen(true)} />
+
       <Box sx={{ display: "flex", height: "100vh" }}>
-  {/* 사이드바 */}
-  <Box sx={{ width: 220, background: "#f4f6fa", borderRight: "2px solid #dfe6e9", p: 2 }}>
-    <Sidebar
-        folders={folders}
-        selectedFolderId={selectedFolderId}
-        onSelect={handleFolderSelect}
-        onAddFolder={handleCreateFolder}
-        onDeleteFolder={handleDeleteFolder}
-      />
-  </Box>
-  {/* 본문 */}
-  <Box sx={{ flex: 1, display: "flex", flexDirection: "column", background: "#fff", p: 3 }}>
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>
-            {selectedFolderName ? `폴더: ${selectedFolderName}` : "폴더를 선택하세요"}
+        <Box sx={{ width: 220, background: "#f4f6fa", borderRight: "2px solid #dfe6e9", p: 2 }}>
+          <Sidebar
+            folders={folders}
+            selectedFolderId={selectedFolderId}
+            onSelect={(id, name) => handleSelect(id, name)}
+            onAddFolder={() => setAskFolderNameOpen(true)}
+            onDeleteFolder={() => {
+              if (selectedFolderId) {
+                setConfirmTarget({ type: "folder", id: selectedFolderId, label: selectedFolderName });
+                setConfirmOpen(true);
+              }
+            }}
+          />
+        </Box>
+
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", background: "#fff", p: 3 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 18 }}>
+            <div style={{ fontSize: 20, fontWeight: 700 }}>
+              {selectedFolderName ? `폴더: ${selectedFolderName}` : "폴더를 선택하세요"}
+            </div>
+            <button
+              onClick={() => setUploadOpen(true)}
+              style={{ background: "#0984e3", color: "white", border: "none", borderRadius: 4, padding: "7px 18px", fontWeight: 600, cursor: "pointer" }}
+              disabled={!selectedFolderId}
+            >
+              문서 업로드
+            </button>
           </div>
-          <button onClick={handleUploadModal} style={{ background: "#0984e3", color: "white", border: "none", borderRadius: 4, padding: "7px 18px", fontWeight: 600, cursor: "pointer" }}>문서 업로드</button>
-        </div>
-        <DocumentTable
-          documents={documents}
-          onPreview={handlePreview}
-          onDownload={handleDownload}
-          onDelete={handleDeleteDoc}
-        />
-  </Box>
-</Box>
-      <UserInfoModal isOpen={userInfoOpen} onClose={handleUserInfoClose} userId={userId} />
-      <DocumentUploadModal isOpen={uploadOpen} onClose={handleUploadClose} onUpload={handleUpload} />
-      <DocumentDetail document={detailDoc} onClose={handlePreviewClose} />
-      <Box
-        sx={{
-          transition: "background 0.2s",
-          zIndex: 2200,
-          background: dragging.current ? "#b2bec3" : "#dfe6e9",
-          cursor: "ew-resize",
-          height: "100%",
-          width: 12,
-          top: 0,
-          left: 0,
-          position: "absolute",
-        }}
-        onMouseDown={() => { dragging.current = true; }}
-      />
+          <DocumentTable
+            documents={documents}
+            onPreview={(doc) => setDetailDoc(doc)}
+            onDownload={(doc) => window.open(`${API_BASE}/documents/download/${doc.id}`, "_blank")}
+            onDelete={(doc) => {
+              setConfirmTarget({ type: "doc", doc, label: doc.name });
+              setConfirmOpen(true);
+            }}
+          />
+        </Box>
+      </Box>
+
+      {/* 모달 */}
+      <UserInfoModal isOpen={userInfoOpen} onClose={() => setUserInfoOpen(false)} userId={userId} />
+      <DocumentUploadModal isOpen={uploadOpen} onClose={() => setUploadOpen(false)} onUpload={handleUpload} />
+      <DocumentDetail document={detailDoc} onClose={() => setDetailDoc(null)} />
+
+      {/* 폴더 생성 다이얼로그 */}
+      <Dialog open={askFolderNameOpen} onClose={() => setAskFolderNameOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>새 폴더 생성</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            variant="outlined"
+            label="폴더 이름"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAskFolderNameOpen(false)}>취소</Button>
+          <Button variant="contained" onClick={handleCreateFolderSubmit}>
+            확인
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 삭제 확인 다이얼로그 */}
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>삭제 확인</DialogTitle>
+        <DialogContent>
+          {confirmTarget?.type === "folder"
+            ? `폴더 "${confirmTarget.label}" 및 폴더 내 문서를 삭제합니다.`
+            : `문서 "${confirmTarget?.label}" 를 삭제합니다.`}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmOpen(false)}>취소</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmDelete}>
+            삭제
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 스낵바 */}
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={2200}
+        onClose={() => setSnack((s) => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert severity={snack.severity} variant="filled" sx={{ width: "100%" }}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
     </div>
   );
 };
 
-export default FolderAndDocumentViewer;
+export default MainView;
