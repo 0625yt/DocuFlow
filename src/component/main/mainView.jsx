@@ -52,45 +52,83 @@ const MainView = () => {
     } catch {}
   }
 
-  const {
-    folders,
-    selectedFolderId,
-    selectedFolderName,
-    handleSelect,
-    handleCreate,
-    handleDelete,
-    refreshFolders,
-  } = useFolders(userId);
+const { folders, selectedFolderId, selectedFolderName,
+        handleSelect, handleCreate, handleDelete,
+        refreshFolders, loading, loadedOnce } = useFolders(userId);
 
-  // 폴더별 문서 불러오기
-  const fetchDocuments = async (folderId) => {
-    if (!folderId) {
-      setDocuments([]);
-      return;
+  // 폴더가 선택되면 해당 폴더의 문서 목록을 불러옴
+useEffect(() => {
+  if (loadedOnce && selectedFolderId != null) {
+    fetchDocuments(selectedFolderId);
+  } else {
+    setDocuments([]); // 초기화
+  }
+}, [loadedOnce, selectedFolderId]);
+
+// 폴더별 문서 불러오기
+const fetchDocuments = async (folderId) => {
+  // ✅ 폴더 ID가 유효하지 않으면 아예 호출하지 않음
+  if (!Number.isFinite(Number(folderId))) {
+    setDocuments([]);
+    return;
+  }
+  try {
+    const res = await fetch(`${API_BASE}/documents?folderId=${folderId}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+// ✅ 서버가 docName/docSize로 주든 name/size로 주든, 프론트 표준으로 정규화
+const raw = await res.json();
+
+// ✅ 서버가 docName/docSize로 주든 name/size로 주든, 프론트 표준으로 정규화
+const list = (Array.isArray(raw) ? raw : []).map(d => ({
+  id: d.id,
+  folderId: d.folderId ?? d.folder?.id,
+  name: d.name ?? d.docName ?? d.fileName ?? "",
+  size: d.size ?? d.docSize ?? d.length ?? null,
+  path: d.path ?? d.filePath ?? "",
+  uploadedAt: d.uploadedAt ?? d.createAt ?? d.createdAt ?? null,
+  // ✅ 추가: 미리보기/다운로드용 URL
+  downloadUrl: `/documents/download/${d.id}`,
+}));
+setDocuments(list);
+  } catch (e) {
+    console.error(e);
+    // 초기 로딩 중 발생한 에러는 스낵바를 띄우지 않음(새로고침 UX 개선)
+    if (!loading) {
+      //setSnack({ open: true, severity: "error", message: "문서 목록을 불러오지 못했습니다." });
     }
-    try {
-      const res = await fetch(`${API_BASE}/documents?folderId=${folderId}`);
-      if (!res.ok) throw new Error("문서 목록을 불러오지 못했습니다.");
-      const list = await res.json();
-      setDocuments(Array.isArray(list) ? list : []);
-    } catch (e) {
-      console.error(e);
-      setSnack({ open: true, severity: "error", message: e.message });
-      setDocuments([]);
-    }
-  };
+    setDocuments([]);
+  }
+};
 
   // 폴더별 문서 업로드
-  const uploadIntoFolder = async (file, folderId) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    const res = await fetch(`${API_BASE}/documents/upload?folderId=${folderId}`, {
-      method: "POST",
-      body: fd,
-    });
-    if (!res.ok) throw new Error(await res.text());
-    return res.json();
-  };
+const uploadIntoFolder = async (file, folderId, userId) => {
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("userId", userId);
+  const res = await fetch(`${API_BASE}/documents/upload?folderId=${folderId}`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json(); // {id,name,size,uploadedAt,downloadUrl}
+};
+
+const handleUpload = async (file) => {
+  if (!selectedFolderId) { /* 스낵바 */ return; }
+  if (!file.name.toLowerCase().endsWith(".docx")) { /* 경고 */ return; }
+  if (!userId) { /* 경고 */ return; }
+
+  try {
+    const saved = await uploadIntoFolder(file, selectedFolderId, userId);
+    // saved가 DTO면 바로 prepend
+    setDocuments((prev) => [saved, ...prev]);
+    setUploadOpen(false);
+    setSnack({ open: true, severity: "success", message: "업로드 성공!" });
+  } catch (e) {
+    console.error(e);
+    setSnack({ open: true, severity: "error", message: `업로드 실패: ${e.message}` });
+  }
+};
 
   // 폴더별 문서 삭제
   const deleteDocument = async (docId) => {
@@ -168,26 +206,6 @@ const MainView = () => {
     }
   };
 
-  const handleUpload = async (file) => {
-    if (!selectedFolderId) {
-      setSnack({ open: true, severity: "info", message: "먼저 폴더를 선택하세요." });
-      return;
-    }
-    if (!file.name.toLowerCase().endsWith(".docx")) {
-      setSnack({ open: true, severity: "warning", message: "docx 파일만 업로드 가능합니다." });
-      return;
-    }
-    try {
-      const saved = await uploadIntoFolder(file, selectedFolderId);
-      setDocuments((prev) => [saved, ...prev]);
-      setUploadOpen(false);
-      setSnack({ open: true, severity: "success", message: "업로드 성공!" });
-    } catch (e) {
-      console.error(e);
-      setSnack({ open: true, severity: "error", message: `업로드 실패: ${e.message}` });
-    }
-  };
-
   return (
     <div style={{ width: "100vw", height: "100vh", background: "#f9f9f9" }}>
       <AppBar position="static" sx={{ background: "#263a53" }}>
@@ -234,7 +252,7 @@ const MainView = () => {
           <DocumentTable
             documents={documents}
             onPreview={(doc) => setDetailDoc(doc)}
-            onDownload={(doc) => window.open(`${API_BASE}/documents/download/${doc.id}`, "_blank")}
+            onDownload={(doc) => window.open(`${API_BASE}${doc.downloadUrl.startsWith('/') ? '' : '/'}${doc.downloadUrl}`, "_blank")}
             onDelete={(doc) => {
               setConfirmTarget({ type: "doc", doc, label: doc.name });
               setConfirmOpen(true);

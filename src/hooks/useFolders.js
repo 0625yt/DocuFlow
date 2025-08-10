@@ -1,36 +1,66 @@
-import { useState, useEffect } from "react";
-import { fetchFolders, createFolder, deleteFolder } from "../api/folder";
+// src/hooks/useFolders.js
+import { useEffect, useState } from "react";
 
 export default function useFolders(userId) {
   const [folders, setFolders] = useState([]);
   const [selectedFolderId, setSelectedFolderId] = useState(null);
-  const [selectedFolderName, setSelectedFolderName] = useState(null);
+  const [selectedFolderName, setSelectedFolderName] = useState("");
+  const [loading, setLoading] = useState(true);           // 로딩 상태 추가
+  const [loadedOnce, setLoadedOnce] = useState(false);    // 첫 로딩 완료 플래그
 
+  const refreshFolders = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`http://localhost:8080/folders/select`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const list = await res.json();
+      setFolders(Array.isArray(list) ? list : []);
+    } catch (e) {
+      console.error(e);
+      setFolders([]);
+    } finally {
+      setLoading(false);
+      setLoadedOnce(true);
+    }
+  };
+
+  useEffect(() => { refreshFolders(); }, [userId]);
+
+  // 폴더 로딩이 끝난 뒤에만 첫 폴더 자동 선택
   useEffect(() => {
-    if (!userId) return;
-    fetchFolders(userId)
-      .then(setFolders)
-      .catch(console.error);
-  }, [userId]);
+    if (!loading && folders.length && selectedFolderId == null) {
+      const f = folders[0];
+      setSelectedFolderId(f.id);
+      setSelectedFolderName(f.folderName || f.name || "");
+    }
+  }, [loading, folders, selectedFolderId]);
 
-  // 폴더 선택 핸들러
-  const handleSelect = (folderId, folderName) => {
-    setSelectedFolderId(folderId);
-    setSelectedFolderName(folderName);
+  const handleSelect = (id, name) => {
+    setSelectedFolderId(id ?? null);
+    setSelectedFolderName(name ?? "");
   };
 
-  // 폴더 생성 핸들러
-  const handleCreate = async (requestData) => {
-    const newFolder = await createFolder(requestData);
-    setFolders((prev) => [...prev, newFolder]);
+  const handleCreate = async (payload) => {
+    const res = await fetch(`http://localhost:8080/folders/create`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    await refreshFolders();
   };
 
-  // 폴더 삭제 핸들러
-  const handleDelete = async (folderId) => {
-    await deleteFolder(folderId);
-    setFolders((prev) => prev.filter((f) => f.id !== folderId));
-    setSelectedFolderId(null);
-    setSelectedFolderName(null);
+  const handleDelete = async (id) => {
+    const res = await fetch(`http://localhost:8080/folders/delete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    await refreshFolders();
   };
 
   return {
@@ -40,5 +70,8 @@ export default function useFolders(userId) {
     handleSelect,
     handleCreate,
     handleDelete,
+    refreshFolders,
+    loading,
+    loadedOnce, // 첫 로딩 완료 여부
   };
-} 
+}

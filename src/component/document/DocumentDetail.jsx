@@ -9,44 +9,86 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import Box from '@mui/material/Box';
 
+const API_BASE = "http://localhost:8080";
+
 const DocumentDetail = ({ document, onClose }) => {
   const [tab, setTab] = useState(0);
-  const previewRef = useRef();
+  const previewRef = useRef(null);
   const [error, setError] = useState("");
   const [panelWidth, setPanelWidth] = useState(480);
   const dragging = useRef(false);
 
+  // 미리보기 로딩
   useEffect(() => {
-    if (tab === 1 && document && document.file && document.name.endsWith(".docx")) {
-      // docx 미리보기
-      const file = document.file;
-      const render = async () => {
-        try {
-          previewRef.current.innerHTML = "";
-          await renderAsync(file, previewRef.current);
-        } catch (e) {
-          setError("docx 미리보기에 실패했습니다.");
-        }
-      };
-      render();
-    }
-  }, [tab, document]);
+    if (tab !== 1 || !document) return;
 
-  // 드래그 이벤트 핸들러
+    let cancelled = false;
+
+    const loadAndRender = async () => {
+      try {
+        setError("");
+        if (!previewRef.current) return;
+
+        const name = (document.name || "").toLowerCase();
+        if (!name.endsWith(".docx")) {
+          setError("지원하지 않는 파일 형식입니다.");
+          return;
+        }
+
+        // 1) 업로드 직후처럼 file이 이미 있으면 사용
+        let fileOrBuffer = document.file;
+
+        // 2) 없으면 서버에서 다운로드해서 생성
+        if (!fileOrBuffer) {
+          // 우선순위: downloadUrl → /documents/download/{id}
+          const url =
+            document.downloadUrl
+              ? (document.downloadUrl.startsWith("http") ? document.downloadUrl : `${API_BASE}${document.downloadUrl.startsWith("/") ? "" : "/"}${document.downloadUrl}`)
+              : `${API_BASE}/documents/download/${document.id}`;
+
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`다운로드 실패 (HTTP ${res.status})`);
+
+          // docx-preview는 ArrayBuffer도 받습니다.
+          fileOrBuffer = await res.arrayBuffer();
+        }
+
+        if (cancelled) return;
+
+        // 렌더 전에 비우기
+        previewRef.current.innerHTML = "";
+
+        // 옵션은 필요시 조절 가능
+        await renderAsync(
+          fileOrBuffer,
+          previewRef.current,
+          undefined,
+          { className: "docx", inWrapper: false }
+        );
+      } catch (e) {
+        if (!cancelled) setError("docx 미리보기에 실패했습니다.");
+        // 콘솔에 자세한 원인 출력
+        console.error(e);
+      }
+    };
+
+    loadAndRender();
+    return () => { cancelled = true; };
+  }, [tab, document?.id]);
+
+  // 리사이즈 핸들
   useEffect(() => {
-    const handleMouseMove = (e) => {
+    const onMove = (e) => {
       if (!dragging.current) return;
-      const newWidth = Math.min(Math.max(window.innerWidth - e.clientX, 360), 900);
-      setPanelWidth(newWidth);
+      const w = Math.min(Math.max(window.innerWidth - e.clientX, 360), 900);
+      setPanelWidth(w);
     };
-    const handleMouseUp = () => {
-      dragging.current = false;
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
     };
   }, []);
 
@@ -54,43 +96,30 @@ const DocumentDetail = ({ document, onClose }) => {
 
   return (
     <Box sx={{ ...styles.panel, width: panelWidth }}>
-      {/* 드래그 핸들 */}
-      <Box
-        sx={styles.dragHandle}
-        onMouseDown={() => { dragging.current = true; }}
-      />
+      <Box sx={styles.dragHandle} onMouseDown={() => { dragging.current = true; }} />
       <Box sx={styles.header}>
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v)}
-          textColor="primary"
-          indicatorColor="primary"
-          sx={{ minHeight: 56 }}
-        >
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} textColor="primary" indicatorColor="primary" sx={{ minHeight: 56 }}>
           <Tab label="기본 정보" sx={{ fontWeight: 700, fontSize: 16, minWidth: 120 }} />
           <Tab label="문서 보기" sx={{ fontWeight: 700, fontSize: 16, minWidth: 120 }} />
         </Tabs>
-        <IconButton onClick={onClose} sx={{ ml: 'auto' }}><CloseIcon /></IconButton>
+        <IconButton onClick={onClose} sx={{ ml: "auto" }}><CloseIcon /></IconButton>
       </Box>
-      <Card sx={{ flex: 1, m: 2, boxShadow: 2, borderRadius: 3, minHeight: 300, overflow: 'auto' }}>
+
+      <Card sx={{ flex: 1, m: 2, boxShadow: 2, borderRadius: 3, minHeight: 300, overflow: "auto" }}>
         <CardContent>
           {tab === 0 && (
             <Box>
               <Typography variant="h6" fontWeight={700} mb={2}>{document.name}</Typography>
-              <Typography variant="body2" color="text.secondary"><b>작성자:</b> {document.author}</Typography>
-              <Typography variant="body2" color="text.secondary"><b>업로드일:</b> {document.date}</Typography>
-              <Typography variant="body2" color="text.secondary"><b>크기:</b> {document.size}</Typography>
-              <Typography variant="body2" color="text.secondary"><b>설명:</b> {document.desc || "-"}</Typography>
+              <Typography variant="body2" color="text.secondary"><b>업로드일:</b> {document.uploadedAt ?? "-"}</Typography>
+              <Typography variant="body2" color="text.secondary"><b>크기:</b> {document.size != null ? `${document.size} bytes` : "-"}</Typography>
+              <Typography variant="body2" color="text.secondary"><b>경로:</b> {document.path ?? "-"}</Typography>
             </Box>
           )}
+
           {tab === 1 && (
             <Box sx={{ minHeight: 300 }}>
-              {document.file && document.name.endsWith(".docx") ? (
-                <Box ref={previewRef} sx={{ background: "#fff", p: 2, borderRadius: 2, minHeight: 300, maxHeight: 600, overflow: "auto" }} />
-              ) : (
-                <Typography color="error">지원하지 않는 파일 형식입니다.</Typography>
-              )}
-              {error && <Typography color="error">{error}</Typography>}
+              <Box ref={previewRef} sx={{ background: "#fff", p: 2, borderRadius: 2, minHeight: 300, maxHeight: 600, overflow: "auto" }} />
+              {error && <Typography color="error" sx={{ mt: 1 }}>{error}</Typography>}
             </Box>
           )}
         </CardContent>
@@ -122,9 +151,7 @@ const styles = {
     cursor: "ew-resize",
     zIndex: 2200,
     background: "transparent",
-    '&:hover': {
-      background: "#dfe6e9",
-    },
+    '&:hover': { background: "#dfe6e9" },
   },
   header: {
     display: "flex",
